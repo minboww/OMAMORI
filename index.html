@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>育てるお守り プロトタイプ</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap');
+
+        :root {
+            --bg-color-default: linear-gradient(to top, #ece9e6, #ffffff);
+            --bg-color-active: linear-gradient(to top, #fff5c1, #fffbeb);
+            --font-color: #5c5c5c;
+        }
+
+        body {
+            font-family: 'Noto Serif JP', serif;
+            margin: 0;
+            background: var(--bg-color-default);
+            color: var(--font-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 1.2s ease-in-out;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h2 {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            color: #444;
+        }
+
+        #omamori-image {
+            width: 280px;
+            height: 280px;
+            object-fit: contain;
+            margin-bottom: 25px;
+            cursor: pointer;
+            transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+            animation: breathing 4s ease-in-out infinite;
+        }
+
+        @keyframes breathing {
+            0% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(224, 184, 38, 0.3)); }
+            50% { transform: scale(1.04); filter: drop-shadow(0 0 20px rgba(224, 184, 38, 0.7)); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(224, 184, 38, 0.3)); }
+        }
+
+        .status-container p {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        #status-text {
+            font-size: 1.2rem;
+            color: #b48a4c;
+            height: 30px;
+            font-weight: 400;
+            margin-top: 20px !important;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+            height: 12px;
+            background-color: rgba(0,0,0,0.08);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #fceabb, #f8b500);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .camera-footer {
+            width: 100%;
+            padding: 10px 0 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #video-container {
+            width: 300px;
+            height: 60px;
+            border-radius: 30px;
+            overflow: hidden;
+            background-color: #eee;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            filter: blur(15px);
+        }
+        
+        .info {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+        
+        #message-popup { position: fixed; bottom: -50px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.5s, bottom 0.5s; pointer-events: none; font-size: 1rem; }
+
+    </style>
+    <script type="module">
+        import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
+        const video = document.getElementById('webcam-video');
+        const statusText = document.getElementById('status-text');
+        const omamoriImage = document.getElementById('omamori-image');
+        const omamoriName = document.getElementById('omamori-name');
+        const tokuPointDisplay = document.getElementById('toku-point');
+        const progressBar = document.getElementById('progress-bar');
+        const messagePopup = document.getElementById('message-popup');
+        const bodyEl = document.body;
+
+        let faceDetector;
+        let lastVideoTime = -1;
+        let tokuPoint = 0;
+        let isDetecting = false;
+
+        const omamoriLevels = [
+            { level: 1, name: "始まりの石", tokuNeeded: 0, imageUrl: "images/001.png" },
+            { level: 2, name: "微かな光", tokuNeeded: 60, imageUrl: "images/002.png" },
+            { level: 3, name: "目覚めの兆し", tokuNeeded: 180, imageUrl: "images/003.png" },
+            { level: 4, name: "内なる輝き", tokuNeeded: 360, imageUrl: "images/004.png" },
+            { level: 5, name: "結晶の形成", tokuNeeded: 600, imageUrl: "images/005.png" },
+            { level: 6, name: "磨かれた心", tokuNeeded: 900, imageUrl: "images/006.png" },
+            { level: 7, name: "希望のプリズム", tokuNeeded: 1500, imageUrl: "images/007.png" },
+            { level: 8, name: "月光の守り", tokuNeeded: 2400, imageUrl: "images/008.png" },
+            { level: 9, name: "太陽の恵み", tokuNeeded: 3600, imageUrl: "images/009.png" },
+            { level: 10, name: "星々の叡智", tokuNeeded: 5400, imageUrl: "images/010.png" }
+        ];
+        const workingMessages = ["静かに見守っています…", "その調子、素敵です", "あなたの努力は、光となります", "一歩一歩、進んでいますね"];
+        const restingMessages = ["少し休憩しましょうか", "お疲れではないですか？", "またいつでも、どうぞ"];
+        const omikujiMessages = ["今日の努力は、明日の力となるでしょう", "焦らなくても大丈夫", "小さな一歩が、大きな飛躍に繋gars", "あなたなら、きっとできます", "よく頑張っていますね。えらい！"];
+        
+        let messageIndex = 0;
+
+        function setIsDetecting(newStatus) {
+            if (isDetecting !== newStatus) {
+                isDetecting = newStatus;
+                bodyEl.style.background = isDetecting ? 'var(--bg-color-active)' : 'var(--bg-color-default)';
+            }
+        }
+        
+        async function createFaceDetector() { const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"); faceDetector = await FaceDetector.createFromOptions(vision, { baseOptions: { modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`, delegate: "GPU" }, runningMode: "VIDEO" }); enableCam(); }
+        function enableCam() { if (!faceDetector) { return; } navigator.mediaDevices.getUserMedia({ video: true }).then(stream => { video.srcObject = stream; video.addEventListener("loadeddata", predictWebcam); }).catch(err => console.error("カメラエラー:", err)); }
+        async function predictWebcam() {
+            if (video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                const detections = faceDetector.detectForVideo(video, performance.now());
+                setIsDetecting(detections.detections.length > 0);
+            }
+            window.requestAnimationFrame(predictWebcam);
+        }
+
+        function updateGame() { 
+            if(isDetecting) { tokuPoint++; if(tokuPoint % 10 === 0) { messageIndex = (messageIndex + 1) % workingMessages.length; statusText.textContent = workingMessages[messageIndex]; } } else { statusText.textContent = restingMessages[Math.floor(Math.random() * restingMessages.length)]; } 
+            let currentLevelInfo = omamoriLevels[0]; let nextLevelInfo = omamoriLevels[1]; 
+            for (let i = omamoriLevels.length - 1; i >= 0; i--) { if (tokuPoint >= omamoriLevels[i].tokuNeeded) { currentLevelInfo = omamoriLevels[i]; nextLevelInfo = (i + 1 < omamoriLevels.length) ? omamoriLevels[i+1] : null; break; } } 
+            if(omamoriImage.src.endsWith(currentLevelInfo.imageUrl) === false) { omamoriImage.style.transform = "scale(0.8)"; setTimeout(() => { omamoriImage.src = currentLevelInfo.imageUrl; omamoriImage.style.transform = "scale(1)"; }, 500); } 
+            omamoriName.textContent = currentLevelInfo.name; tokuPointDisplay.textContent = tokuPoint; 
+            if(nextLevelInfo) { const progress = (tokuPoint - currentLevelInfo.tokuNeeded) / (nextLevelInfo.tokuNeeded - currentLevelInfo.tokuNeeded); progressBar.style.width = `${progress * 100}%`; } else { progressBar.style.width = "100%"; progressBar.style.backgroundColor = "#ffd700"; } 
+        }
+
+        omamoriImage.addEventListener('click', () => { const message = omikujiMessages[Math.floor(Math.random() * omikujiMessages.length)]; messagePopup.textContent = message; messagePopup.style.opacity = '1'; messagePopup.style.bottom = '40px'; setTimeout(() => { messagePopup.style.opacity = '0'; messagePopup.style.bottom = '-50px'; }, 2500); });
+        
+        omamoriImage.src = omamoriLevels[0].imageUrl;
+        createFaceDetector();
+        setInterval(updateGame, 1000);
+    </script>
+</head>
+<body>
+    <main class="main-content">
+        <img id="omamori-image" alt="お守り">
+        <h2 id="omamori-name">始まりの石</h2>
+        <div class="status-container">
+            <p>徳ポイント: <span id="toku-point">0</span></p>
+        </div>
+        <div class="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+        <p id="status-text">あなたを見守る準備をしています…</p>
+    </main>
+
+    <footer class="camera-footer">
+        <div id="video-container">
+            <video id="webcam-video" autoplay playsinline></video>
+        </div>
+        <p class="info">あなたの気配</p>
+    </footer>
+
+    <div id="message-popup"></div>
+</body>
+</html>
