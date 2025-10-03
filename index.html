@@ -7,33 +7,130 @@
     <style>
         /* フォントと基本設定 */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap');
-        :root { --bg-color-default: linear-gradient(to top, #ece9e6, #ffffff); --bg-color-active: linear-gradient(to top, #fff5c1, #fffbeb); --font-color: #5c5c5c; }
-        body { font-family: 'Noto Serif JP', serif; margin: 0; background: var(--bg-color-default); color: var(--font-color); height: 100vh; display: flex; flex-direction: column; transition: background 1.2s ease-in-out; }
+        :root { 
+            --bg-color-default: linear-gradient(to top, #ece9e6, #ffffff); 
+            --bg-color-active: linear-gradient(to top, #fff5c1, #fffbeb); 
+            --font-color: #5c5c5c; 
+        }
+        body { 
+            font-family: 'Noto Serif JP', serif; 
+            margin: 0; 
+            background: var(--bg-color-default); 
+            color: var(--font-color); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            transition: background 1.2s ease-in-out; 
+        }
         
         /* メインコンテンツ */
-        .main-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        .main-content { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px; 
+            text-align: center; 
+        }
         
-        /* ★変更点: ユーザーが付けた名前のスタイル */
-        #user-omamori-name { font-weight: 700; font-size: 2.5rem; margin: 0 0 10px 0; color: #444; }
+        #user-omamori-name { 
+            font-weight: 700; 
+            font-size: 2.5rem; 
+            margin: 0 0 10px 0; 
+            color: #444; 
+        }
         
-        /* ★変更点: お守りの状態名（レベル名）のスタイル */
-        #omamori-level-name { font-size: 1rem; margin: -10px 0 20px 0; color: #888; }
+        #omamori-level-name { 
+            font-size: 1rem; 
+            margin: -10px 0 20px 0; 
+            color: #888; 
+        }
         
-        #omamori-image { width: 280px; height: 280px; object-fit: contain; cursor: pointer; transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1); animation: breathing 4s ease-in-out infinite; }
-        @keyframes breathing { 0% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(224, 184, 38, 0.3)); } 50% { transform: scale(1.04); filter: drop-shadow(0 0 20px rgba(224, 184, 38, 0.7)); } 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(224, 184, 38, 0.3)); } }
-        .status-container p { margin: 10px 0 0 0; font-size: 1.1rem; }
-        #status-text { font-size: 1.2rem; color: #b48a4c; height: 30px; font-weight: 400; margin-top: 20px !important; }
-        .progress-bar-container { width: 100%; max-width: 400px; margin: 15px auto; height: 12px; background-color: rgba(0,0,0,0.08); border-radius: 6px; overflow: hidden; }
-        #progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #fceabb, #f8b500); border-radius: 6px; transition: width 0.5s ease; }
+        #omamori-image { 
+            width: 280px; 
+            height: 280px; 
+            object-fit: contain; 
+            cursor: pointer; 
+            transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1); 
+            animation: breathing 4s ease-in-out infinite; 
+        }
+        @keyframes breathing { 
+            0% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(224, 184, 38, 0.3)); } 
+            50% { transform: scale(1.04); filter: drop-shadow(0 0 20px rgba(224, 184, 38, 0.7)); } 
+            100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(224, 184, 38, 0.3)); } 
+        }
+        .status-container p { 
+            margin: 10px 0 0 0; 
+            font-size: 1.1rem; 
+        }
+        #status-text { 
+            font-size: 1.2rem; 
+            color: #b48a4c; 
+            height: 30px; 
+            font-weight: 400; 
+            margin-top: 20px !important; 
+        }
+        .progress-bar-container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 15px auto; 
+            height: 12px; 
+            background-color: rgba(0,0,0,0.08); 
+            border-radius: 6px; 
+            overflow: hidden; 
+        }
+        #progress-bar { 
+            width: 0%; 
+            height: 100%; 
+            background: linear-gradient(90deg, #fceabb, #f8b500); 
+            border-radius: 6px; 
+            transition: width 0.5s ease; 
+        }
         
         /* フッター */
-        .camera-footer { width: 100%; padding: 10px 0 20px 0; display: flex; flex-direction: column; align-items: center; }
-        #video-container { width: 300px; height: 60px; border-radius: 30px; overflow: hidden; background-color: #eee; }
-        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: blur(15px); }
-        .info { margin-top: 8px; font-size: 0.8rem; color: #aaa; }
-        #message-popup { position: fixed; bottom: -50px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.5s, bottom 0.5s; pointer-events: none; font-size: 1rem; }
+        .camera-footer { 
+            width: 100%; 
+            padding: 10px 0 20px 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        #video-container { 
+            width: 300px; 
+            height: 60px; 
+            border-radius: 30px; 
+            overflow: hidden; 
+            background-color: #eee; 
+        }
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            transform: scaleX(-1); 
+            filter: blur(15px); 
+        }
+        .info { 
+            margin-top: 8px; 
+            font-size: 0.8rem; 
+            color: #aaa; 
+        }
+        #message-popup { 
+            position: fixed; 
+            bottom: -50px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background-color: rgba(0,0,0,0.8); 
+            color: white; 
+            padding: 10px 20px; 
+            border-radius: 20px; 
+            opacity: 0; 
+            transition: opacity 0.5s, bottom 0.5s; 
+            pointer-events: none; 
+            font-size: 1rem; 
+        }
 
-        /* ★新機能: 名前入力モーダルのスタイル */
+        /* 名前入力モーダル */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -45,6 +142,7 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            transition: opacity 0.5s;
         }
         .modal-content {
             background: white;
@@ -91,17 +189,15 @@
         const statusText = document.getElementById('status-text');
         const omamoriImage = document.getElementById('omamori-image');
         const userOmamoriName = document.getElementById('user-omamori-name');
-        const omamoriLevelName = document.getElementById('omamori-level-name'); // ★追加
+        const omamoriLevelName = document.getElementById('omamori-level-name');
         const tokuPointDisplay = document.getElementById('toku-point');
         const progressBar = document.getElementById('progress-bar');
         const messagePopup = document.getElementById('message-popup');
         const bodyEl = document.body;
         
-        // ★新機能: 名前入力モーダル関連の要素
         const nameModal = document.getElementById('name-modal');
         const nameInput = document.getElementById('omamori-name-input');
         const submitNameButton = document.getElementById('submit-name-button');
-
 
         let faceDetector;
         let lastVideoTime = -1;
@@ -110,89 +206,160 @@
         const savedTokuPoint = localStorage.getItem('omamoriTokuPoint');
         let tokuPoint = savedTokuPoint ? parseInt(savedTokuPoint, 10) : 0;
         
-        const omamoriLevels = [ /* ... かんたん設定ガイド ... */ ]; // 省略
+     
+        const omamoriLevels = [
+            { level: 1, name: "始まり", tokuNeeded: 0, imageUrl: "images/001.png" },
+            { level: 2, name: "微かな光", tokuNeeded: 60, imageUrl: "images/002.png" },
+            { level: 3, name: "目覚め", tokuNeeded: 180, imageUrl: "images/003.png" },
+            { level: 4, name: "内なる輝き", tokuNeeded: 360, imageUrl: "images/004.png" },
+            { level: 5, name: "結晶の形成", tokuNeeded: 600, imageUrl: "images/005.png" },
+            { level: 6, name: "磨かれた心", tokuNeeded: 900, imageUrl: "images/006.png" },
+            { level: 7, name: "希望のプリズム", tokuNeeded: 1500, imageUrl: "images/007.png" },
+            { level: 8, name: "月光の守り", tokuNeeded: 2400, imageUrl: "images/008.png" },
+            { level: 9, name: "太陽の恵み", tokuNeeded: 3600, imageUrl: "images/009.png" },
+            { level: 10, name: "星々の叡智", tokuNeeded: 5400, imageUrl: "images/010.png" }
+        ];
         const workingMessages = ["静かに見守っています…", "その調子、素敵です", "あなたの努力は、光となります", "一歩一歩、進んでいますね"];
-        const restingMessages = ["またいつでも、どうぞ"];
+        const restingMessages = ["少し休憩しましょうか", "お疲れではないですか？", "またいつでも、どうぞ"];
         const omikujiMessages = ["今日の努力は、明日の力となるでしょう", "焦らなくても大丈夫", "小さな一歩が、大きな飛躍に繋がります", "あなたなら、きっとできます", "よく頑張っていますね。えらい！"];
-        
+        // ======================================================================
+
         let messageIndex = 0;
 
-        function setIsDetecting(newStatus) { /* ... 省略 ... */ }
-        async function createFaceDetector() { /* ... 省略 ... */ }
-        function enableCam() { /* ... 省略 ... */ }
-        async function predictWebcam() { /* ... 省略 ... */ }
+        function setIsDetecting(newStatus) {
+            if (isDetecting !== newStatus) {
+                isDetecting = newStatus;
+                bodyEl.style.background = isDetecting ? 'var(--bg-color-active)' : 'var(--bg-color-default)';
+            }
+        }
+        
+        async function createFaceDetector() { 
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"); 
+            faceDetector = await FaceDetector.createFromOptions(vision, { 
+                baseOptions: { 
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`, 
+                    delegate: "GPU" 
+                }, 
+                runningMode: "VIDEO" 
+            }); 
+            enableCam(); 
+        }
+        
+        function enableCam() { 
+            if (!faceDetector) { return; } 
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => { 
+                    video.srcObject = stream; 
+                    video.addEventListener("loadeddata", predictWebcam); 
+                })
+                .catch(err => {
+                    console.error("カメラエラー:", err);
+                    alert("カメラを起動できませんでした。ブラウザのカメラアクセス許可を確認してください。");
+                }); 
+        }
+
+        async function predictWebcam() {
+            if (video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                const detections = faceDetector.detectForVideo(video, performance.now());
+                setIsDetecting(detections.detections.length > 0);
+            }
+            window.requestAnimationFrame(predictWebcam);
+        }
 
         function updateGame() { 
-            if(isDetecting) { tokuPoint++; if(tokuPoint % 10 === 0) { messageIndex = (messageIndex + 1) % workingMessages.length; statusText.textContent = workingMessages[messageIndex]; } } else { statusText.textContent = restingMessages[Math.floor(Math.random() * restingMessages.length)]; } 
-            let currentLevelInfo = omamoriLevels[0]; let nextLevelInfo = omamoriLevels[1]; 
-            for (let i = omamoriLevels.length - 1; i >= 0; i--) { if (tokuPoint >= omamoriLevels[i].tokuNeeded) { currentLevelInfo = omamoriLevels[i]; nextLevelInfo = (i + 1 < omamoriLevels.length) ? omamoriLevels[i+1] : null; break; } } 
-            if(omamoriImage.src.endsWith(currentLevelInfo.imageUrl) === false) { omamoriImage.style.transform = "scale(0.8)"; setTimeout(() => { omamoriImage.src = currentLevelInfo.imageUrl; omamoriImage.style.transform = "scale(1)"; }, 500); } 
+            if(isDetecting) { 
+                tokuPoint++; 
+                if(tokuPoint % 10 === 0) { 
+                    messageIndex = (messageIndex + 1) % workingMessages.length; 
+                    statusText.textContent = workingMessages[messageIndex]; 
+                } 
+            } else { 
+                statusText.textContent = restingMessages[Math.floor(Math.random() * restingMessages.length)]; 
+            } 
             
-            // ★変更点: 状態名（レベル名）を表示
+            let currentLevelInfo = omamoriLevels[0]; 
+            let nextLevelInfo = omamoriLevels[1]; 
+            for (let i = omamoriLevels.length - 1; i >= 0; i--) { 
+                if (tokuPoint >= omamoriLevels[i].tokuNeeded) { 
+                    currentLevelInfo = omamoriLevels[i]; 
+                    nextLevelInfo = (i + 1 < omamoriLevels.length) ? omamoriLevels[i+1] : null; 
+                    break; 
+                } 
+            } 
+            
+            if(omamoriImage.src.endsWith(currentLevelInfo.imageUrl) === false) { 
+                omamoriImage.style.transform = "scale(0.8)"; 
+                setTimeout(() => { 
+                    omamoriImage.src = currentLevelInfo.imageUrl; 
+                    omamoriImage.style.transform = "scale(1)"; 
+                }, 500); 
+            } 
+            
             omamoriLevelName.textContent = currentLevelInfo.name;
-            
             tokuPointDisplay.textContent = tokuPoint; 
-            if(nextLevelInfo) { const progress = (tokuPoint - currentLevelInfo.tokuNeeded) / (nextLevelInfo.tokuNeeded - currentLevelInfo.tokuNeeded); progressBar.style.width = `${progress * 100}%`; } else { progressBar.style.width = "100%"; progressBar.style.backgroundColor = "#ffd700"; } 
+            
+            if(nextLevelInfo) { 
+                const progress = (tokuPoint - currentLevelInfo.tokuNeeded) / (nextLevelInfo.tokuNeeded - currentLevelInfo.tokuNeeded); 
+                progressBar.style.width = `${progress * 100}%`; 
+            } else { 
+                progressBar.style.width = "100%"; 
+                progressBar.style.backgroundColor = "#ffd700"; 
+            } 
+            
             localStorage.setItem('omamoriTokuPoint', tokuPoint);
         }
 
-        omamoriImage.addEventListener('click', () => { /* ... 省略 ... */ });
+        omamoriImage.addEventListener('click', () => { 
+            const message = omikujiMessages[Math.floor(Math.random() * omikujiMessages.length)]; 
+            messagePopup.textContent = message; 
+            messagePopup.style.opacity = '1'; 
+            messagePopup.style.bottom = '40px'; 
+            setTimeout(() => { 
+                messagePopup.style.opacity = '0'; 
+                messagePopup.style.bottom = '-50px'; 
+            }, 2500); 
+        });
         
-        // ======================================================================
-        // ★★★ 新機能: アプリケーション初期化処理 ★★★
-        // ======================================================================
+        // アプリケーション初期化処理
         function startApp() {
-            // 保存された名前を表示
             const savedName = localStorage.getItem('omamoriCustomName');
             userOmamoriName.textContent = savedName;
-
-            // 初期表示を更新
             omamoriImage.src = omamoriLevels[0].imageUrl;
             updateGame();
-
-            // カメラ起動と定期更新を開始
             createFaceDetector();
             setInterval(updateGame, 1000);
         }
 
-        // ページ読み込み時の処理
         document.addEventListener('DOMContentLoaded', () => {
             const savedName = localStorage.getItem('omamoriCustomName');
             if (savedName) {
-                // 名前が保存されていれば、モーダルを隠してアプリを開始
                 nameModal.style.display = 'none';
                 startApp();
             } else {
-                // 名前がなければ、モーダルを表示
                 nameModal.style.display = 'flex';
             }
         });
 
-        // 名前の決定ボタンがクリックされた時の処理
         submitNameButton.addEventListener('click', () => {
             const newName = nameInput.value.trim();
             if (newName) {
                 localStorage.setItem('omamoriCustomName', newName);
-                nameModal.style.display = 'none';
+                nameModal.style.opacity = '0';
+                setTimeout(() => {
+                    nameModal.style.display = 'none';
+                }, 500);
                 startApp();
             } else {
                 alert('お守りの名前を入力してください。');
             }
         });
-
-        // 省略した関数の定義
-        omamoriLevels.push({ level: 1, name: "始まり", tokuNeeded: 0, imageUrl: "images/001.png" }, { level: 2, name: "微かな光", tokuNeeded: 60, imageUrl: "images/002.png" }, { level: 3, name: "目覚め", tokuNeeded: 180, imageUrl: "images/003.png" }, { level: 4, name: "内なる輝き", tokuNeeded: 360, imageUrl: "images/004.png" }, { level: 5, name: "結晶", tokuNeeded: 600, imageUrl: "images/005.png" }, { level: 6, name: "磨かれた心", tokuNeeded: 900, imageUrl: "images/006.png" }, { level: 7, name: "希望のプリズム", tokuNeeded: 1500, imageUrl: "images/007.png" }, { level: 8, name: "月光の守り", tokuNeeded: 2400, imageUrl: "images/008.png" }, { level: 9, name: "太陽の恵み", tokuNeeded: 3600, imageUrl: "images/009.png" }, { level: 10, name: "星々の叡智", tokuNeeded: 5400, imageUrl: "images/010.png" });
-        setIsDetecting = function(newStatus) { if (isDetecting !== newStatus) { isDetecting = newStatus; bodyEl.style.background = isDetecting ? 'var(--bg-color-active)' : 'var(--bg-color-default)'; } };
-        createFaceDetector = async function() { const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"); faceDetector = await FaceDetector.createFromOptions(vision, { baseOptions: { modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`, delegate: "GPU" }, runningMode: "VIDEO" }); enableCam(); };
-        enableCam = function() { if (!faceDetector) { return; } navigator.mediaDevices.getUserMedia({ video: true }).then(stream => { video.srcObject = stream; video.addEventListener("loadeddata", predictWebcam); }).catch(err => console.error("カメラエラー:", err)); };
-        predictWebcam = async function() { if (video.currentTime !== lastVideoTime) { lastVideoTime = video.currentTime; const detections = faceDetector.detectForVideo(video, performance.now()); setIsDetecting(detections.detections.length > 0); } window.requestAnimationFrame(predictWebcam); };
-        omamoriImage.addEventListener('click', () => { const message = omikujiMessages[Math.floor(Math.random() * omikujiMessages.length)]; messagePopup.textContent = message; messagePopup.style.opacity = '1'; messagePopup.style.bottom = '40px'; setTimeout(() => { messagePopup.style.opacity = '0'; messagePopup.style.bottom = '-50px'; }, 2500); });
     </script>
 </head>
 <body>
     <main class="main-content">
-        <h2 id="user-omamori-name"></h2> <!-- ユーザーが付けた名前 -->
-        <p id="omamori-level-name"></p> <!-- お守りの状態名（レベル名） -->
+        <h2 id="user-omamori-name"></h2>
+        <p id="omamori-level-name"></p>
         <img id="omamori-image" alt="お守り">
         <div class="status-container">
             <p>徳ポイント: <span id="toku-point">0</span></p>
@@ -212,7 +379,6 @@
 
     <div id="message-popup"></div>
 
-    <!-- ★新機能: 名前入力モーダル -->
     <div id="name-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>ようこそ</h3>
