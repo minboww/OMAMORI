@@ -297,7 +297,7 @@
             } 
             
             omamoriLevelName.textContent = currentLevelInfo.name;
-            tokuPointDisplay.textContent = tokuPoint; 
+         
             
             if(nextLevelInfo) { 
                 const progress = (tokuPoint - currentLevelInfo.tokuNeeded) / (nextLevelInfo.tokuNeeded - currentLevelInfo.tokuNeeded); 
@@ -362,7 +362,7 @@
         <p id="omamori-level-name"></p>
         <img id="omamori-image" alt="お守り">
         <div class="status-container">
-            <p>徳ポイント: <span id="toku-point">0</span></p>
+   
         </div>
         <div class="progress-bar-container">
             <div id="progress-bar"></div>
