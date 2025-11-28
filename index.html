@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>育てるお守り - 繋がりと神棚</title>
+    <title>育てるお守り - 結びの場所</title>
     <style>
         /* --- 基本設定 --- */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap');
@@ -27,8 +27,7 @@
             overflow: hidden; 
         }
 
-        /* --- A. 狐火 (Kitsunebi) --- */
- /* --- A. 狐火 (Kitsunebi) - 漂う魂 --- */
+        /* --- A. 狐火 (Kitsunebi) - 漂う魂 --- */
         #kitsunebi-container {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -41,22 +40,20 @@
             background: radial-gradient(circle, rgba(255,215,0,0.9) 0%, rgba(255,165,0,0.2) 60%, transparent 80%);
             border-radius: 50%;
             filter: blur(2px);
-            opacity: 0; /* 初期状態 */
-            transition: opacity 2s ease-in-out, top 5s ease, left 5s ease; /* 出現・消失・移動をふんわりと */
+            opacity: 0;
+            transition: opacity 2s ease-in-out, top 5s ease, left 5s ease;
             box-shadow: 0 0 15px rgba(255, 200, 0, 0.6);
         }
-        
-        /* ゆらゆら漂うアニメーション */
         .kitsunebi.active {
             opacity: 0.8;
             animation: drifting 6s ease-in-out infinite alternate;
         }
-
         @keyframes drifting {
             0% { transform: translate(0, 0) scale(1); }
             50% { transform: translate(15px, -15px) scale(1.1); }
             100% { transform: translate(-15px, 10px) scale(0.9); }
         }
+        
         /* --- メインコンテンツ --- */
         .main-content { 
             flex-grow: 1; 
@@ -187,7 +184,7 @@
         }
         button:hover { background-color: #9a733a; }
 
-        /* --- 神棚ボタン（木札風） --- */
+        /* --- UIパーツ（神棚ボタン、画面監視ボタンなど） --- */
         #kamidana-btn {
             position: fixed; top: 20px; right: 20px;
             background: linear-gradient(to bottom, #f3eac8, #dcc085);
@@ -212,6 +209,20 @@
             content: '⛩'; margin-right: 8px; color: var(--shrine-red);
         }
 
+        #start-screen-btn {
+            position: fixed; top: 75px; right: 20px;
+            background-color: #fff;
+            color: #555;
+            border: 1px solid #ccc;
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            z-index: 50;
+            cursor: pointer;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #start-screen-btn:hover { background-color: #f9f9f9; }
+
         /* --- 神棚アーカイブリスト（棚） --- */
         .kamidana-shelf {
             display: grid;
@@ -225,7 +236,6 @@
             overflow-y: auto;
         }
 
-        /* 奉納されたお守り（木札デザイン） */
         .archive-item {
             position: relative;
             background: #fff;
@@ -257,7 +267,6 @@
         }
         .archive-info p { margin: 0; font-size: 0.75rem; color: #888; }
         
-        /* 満願成就スタンプ */
         .stamp {
             position: absolute; top: 5px; right: 5px;
             width: 40px; height: 40px;
@@ -269,7 +278,6 @@
         }
         .stamp span { border: 1px solid #ff4d4d; padding: 2px; }
 
-        /* モーダル装飾強化 */
         .kamidana-modal-content {
             border: 2px solid var(--shrine-red);
             background-color: #fffbf0;
@@ -306,29 +314,36 @@
 
     </style>
     <script type="module">
-        import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+        import { FaceDetector, ObjectDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-        // --- Firebase 初期化 (ここを書き換えてください) ---
-        // ★★★ 自分のFirebaseプロジェクトの設定に書き換えてください ★★★
+        // ==========================================
+        // ★★★ 設定エリア (書き換えてください) ★★★
+        // ==========================================
+        
+        // 1. Firebaseの設定
         const firebaseConfig = {
-      apiKey: "AIzaSyCwfM8A0_Kn2JZ6aWLMilRVcCjD0JweUmM",
+       apiKey: "AIzaSyCwfM8A0_Kn2JZ6aWLMilRVcCjD0JweUmM",
   authDomain: "omamori-e5af9.firebaseapp.com",
   projectId: "omamori-e5af9",
   storageBucket: "omamori-e5af9.firebasestorage.app",
   messagingSenderId: "801950673218",
-  appId: "1:801950673218:web:0e2a8fc8faf5ba2a5dc0db",
+  appId: "1:801950673218:web:0e2a8fc8faf5ba2a5dc0db"
         };
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+        // 2. Google Gemini APIキー (画面監視機能を使う場合)
+        const GEMINI_API_KEY = "AIzaSyAfVuFwvgliYSGTKxozJTHGYqBq-UcHd4E"; 
+
+        // ==========================================
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const appId = 'omamori-app';
 
-        // --- DOM要素 ---
+        // DOM要素
         const video = document.getElementById('webcam-video');
         const statusText = document.getElementById('status-text');
         const omamoriImage = document.getElementById('omamori-image');
@@ -340,33 +355,42 @@
         const kitsunebiContainer = document.getElementById('kitsunebi-container');
         const loadingOverlay = document.getElementById('loading-overlay');
         
-        // モーダル関連
+        // モーダル
         const wishModal = document.getElementById('wish-modal');
         const wishInput = document.getElementById('omamori-wish-input');
         const submitWishButton = document.getElementById('submit-wish-button');
-        
-        // 神棚関連
         const kamidanaModal = document.getElementById('kamidana-modal');
         const kamidanaBtn = document.getElementById('kamidana-btn');
         const closeKamidanaBtn = document.getElementById('close-kamidana-button');
         const archiveListEl = document.getElementById('archive-list');
+        
+        // 画面監視
+        const startScreenBtn = document.getElementById('start-screen-btn');
 
+        // AI関連
         let faceDetector;
+        let objectDetector;
         let lastVideoTime = -1;
         let isDetecting = false;
+        let isPhoneDetected = false; // スマホ検知フラグ
+        
+        // ユーザーデータ
         let currentUser = null;
-        const activeSpirits = {};
-        // ゲーム状態
         let currentWish = "";
         let tokuPoint = 0;
         let archives = [];
         let isDataLoaded = false;
         
-        // Firebase同期間隔制御
+        // 同期・管理
         let lastSaveTime = 0;
         const SAVE_INTERVAL = 5000;
         let lastPresenceUpdate = 0;
+        const activeSpirits = {}; // 狐火管理
         
+        // 画面共有管理
+        let screenStream = null;
+        let screenInterval = null;
+
         const omamoriLevels = [
             { level: 1, name: "祈りの始まり", tokuNeeded: 0, imageUrl: "images/001.png" },
             { level: 2, name: "微かな光", tokuNeeded: 60, imageUrl: "images/002.png" },
@@ -413,7 +437,6 @@
             }
         });
 
-        // --- 2. Firestore データ管理 ---
         async function loadUserData(userId) {
             const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'data', 'omamori');
             try {
@@ -434,7 +457,6 @@
                 isDataLoaded = true;
             } catch (error) {
                 console.error("Error loading data:", error);
-                alert("データの読み込みに失敗しました。再読み込みしてください。");
             }
         }
 
@@ -457,7 +479,7 @@
                 console.error("Save error:", e);
             }
         }
-
+        
         async function forceSave() {
              if (!currentUser) return;
              const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'omamori');
@@ -469,7 +491,7 @@
             }, { merge: true });
         }
 
-        // --- 3. カメラ & 顔認識 ---
+        // --- 2. AI認識（顔・物体） ---
         function setIsDetecting(newStatus) {
             if (isDetecting !== newStatus) {
                 isDetecting = newStatus;
@@ -480,13 +502,26 @@
         
         async function createFaceDetector() { 
             const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"); 
+            
+            // 顔認識
             faceDetector = await FaceDetector.createFromOptions(vision, { 
                 baseOptions: { 
                     modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`, 
                     delegate: "GPU" 
                 }, 
                 runningMode: "VIDEO" 
-            }); 
+            });
+            
+            // 物体認識 (スマホ検知用)
+            objectDetector = await ObjectDetector.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite`,
+                    delegate: "GPU"
+                },
+                scoreThreshold: 0.5, 
+                runningMode: "VIDEO"
+            });
+            
             enableCam(); 
         }
         
@@ -506,13 +541,32 @@
         async function predictWebcam() {
             if (video.currentTime !== lastVideoTime) {
                 lastVideoTime = video.currentTime;
-                const detections = faceDetector.detectForVideo(video, performance.now());
-                setIsDetecting(detections.detections.length > 0);
+                const startTimeMs = performance.now();
+                
+                // 1. 顔検出
+                const faceResult = faceDetector.detectForVideo(video, startTimeMs);
+                const hasFace = faceResult.detections.length > 0;
+
+                // 2. 物体検出（スマホ）
+                let hasPhone = false;
+                if (objectDetector) {
+                    const objectResult = objectDetector.detectForVideo(video, startTimeMs);
+                    for (const detection of objectResult.detections) {
+                        for (const category of detection.categories) {
+                            if (category.categoryName === "cell phone") {
+                                hasPhone = true;
+                            }
+                        }
+                    }
+                }
+
+                isPhoneDetected = hasPhone;
+                setIsDetecting(hasFace);
             }
             window.requestAnimationFrame(predictWebcam);
         }
 
-        // --- 4. 狐火 & デバッグ (オンライン機能) ---
+        // --- 3. プレゼンス & 狐火 ---
         async function updatePresence(isActive) {
             if (!currentUser) return;
             const now = Date.now();
@@ -528,11 +582,9 @@
                         lastActive: serverTimestamp()
                     });
                 }
-            } catch (e) {
-                // ignore error
-            }
+            } catch (e) { /* ignore */ }
         }
-// 他人のステータスを常時監視 & 狐火の管理
+
         function initPresenceListener() {
             const presenceColl = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
             const counterEl = document.getElementById('online-counter');
@@ -540,21 +592,17 @@
             
             onSnapshot(presenceColl, (snapshot) => {
                 const now = Date.now();
-                const currentActiveIds = new Set(); // 今この瞬間にアクティブな人のIDリスト
+                const currentActiveIds = new Set(); 
 
-                // 1. データベース上の全ユーザーを確認
+                // A. 生存確認 & 生成
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const uid = doc.id;
 
-                    // 15秒以内に更新があれば「生存」とみなす
                     if (data.isActive && data.lastActive) {
                         const lastActiveTime = data.lastActive.toMillis();
                         if (now - lastActiveTime < 15000) {
-                            
-                            currentActiveIds.add(uid); // 生存リストに追加
-
-                            // ★ まだ狐火が出ていないなら、生成する
+                            currentActiveIds.add(uid);
                             if (!activeSpirits[uid]) {
                                 createSpirit(uid, container);
                             }
@@ -562,72 +610,136 @@
                     }
                 });
 
-                // 2. 「いなくなった人」の狐火を消す
-                // (表示中の全狐火IDを確認し、生存リストになければ削除)
+                // B. 消失処理
                 Object.keys(activeSpirits).forEach(uid => {
                     if (!currentActiveIds.has(uid)) {
                         removeSpirit(uid);
                     }
                 });
 
-                // 3. 人数表示更新
+                // C. 人数表示
                 if(counterEl) {
-                    // 自分を含めた人数
                     counterEl.textContent = `Online: ${currentActiveIds.size}`;
                 }
-
-            }, (error) => {
-                console.log("Presence listen error:", error);
-            });
+            }, (error) => { console.log("Presence listen error:", error); });
         }
 
-        // 狐火を生成する関数
         function createSpirit(uid, container) {
             const el = document.createElement('div');
             el.className = 'kitsunebi';
             
-            // 画面内のランダムな位置に出現（中央付近に寄りやすく調整）
-            const randomX = Math.random() * 80 + 10; // 10% ~ 90%
-            const randomY = Math.random() * 60 + 20; // 20% ~ 80%
+            const randomX = Math.random() * 80 + 10;
+            const randomY = Math.random() * 60 + 20;
             
             el.style.left = randomX + '%';
             el.style.top = randomY + '%';
-            
-            // アニメーションのタイミングを少しずらす（自然に見せるため）
             el.style.animationDelay = (Math.random() * 5) + 's';
 
             container.appendChild(el);
-            
-            // 少し待ってからふわっと表示（transitionのため）
-            setTimeout(() => {
-                el.classList.add('active');
-            }, 100);
-
-            // 管理リストに登録
+            setTimeout(() => { el.classList.add('active'); }, 100);
             activeSpirits[uid] = el;
         }
 
-        // 狐火を削除する関数
         function removeSpirit(uid) {
             const el = activeSpirits[uid];
             if (el) {
-                // ふわっと消す
-                el.classList.remove('active'); // opacityが0になる
-                
-                // 完全に透明になった頃にDOMから削除
+                el.classList.remove('active');
                 setTimeout(() => {
-                    if (el.parentNode) {
-                        el.parentNode.removeChild(el);
-                    }
-                }, 2000); // CSSのtransition時間(2s)に合わせる
-
-                // 管理リストから削除
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 2000);
                 delete activeSpirits[uid];
             }
         }
+
+        // --- 4. 画面監視 (Gemini API) ---
+        startScreenBtn.addEventListener('click', async () => {
+            try {
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always" },
+                    audio: false
+                });
+
+                startScreenBtn.style.display = 'none';
+                statusText.textContent = "画面の監視を開始しました...";
+                
+                screenInterval = setInterval(checkScreenActivity, 60000); 
+                checkScreenActivity(); // 初回
+
+                screenStream.getVideoTracks()[0].onended = () => {
+                    clearInterval(screenInterval);
+                    startScreenBtn.style.display = 'block';
+                    alert("画面共有が終了しました。監視を停止します。");
+                };
+            } catch (err) { console.error(err); }
+        });
+
+        async function checkScreenActivity() {
+            if (!screenStream) return;
+            try {
+                const track = screenStream.getVideoTracks()[0];
+                const imageCapture = new ImageCapture(track);
+                const bitmap = await imageCapture.grabFrame();
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(bitmap, 0, 0);
+                
+                const base64Image = canvas.toDataURL('image/jpeg', 0.5).split(',')[1]; 
+                analyzeScreenWithGemini(base64Image);
+            } catch(e) { console.error(e); }
+        }
+
+        async function analyzeScreenWithGemini(base64Image) {
+            if(!GEMINI_API_KEY || GEMINI_API_KEY.includes("YOUR")) return;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`;
+            const promptText = `
+                この画像を分析してください。
+                ユーザーは現在「勉強」または「仕事」をしていますか？
+                それとも「ゲーム」「動画鑑賞（YouTube/Netflixなど）」「SNS」などの「遊び」をしていますか？
+                以下の形式でJSONのみを返してください。理由は不要です。
+                {"status": "safe"} -> 勉強、仕事、テキストエディタ、ドキュメント作成
+                {"status": "out"} -> ゲーム、エンタメ動画、SNS、ショッピングサイト
+            `;
+
+            const body = {
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                    ]
+                }]
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                console.log("AI判定:", text);
+
+                if (text.includes("out")) {
+                    statusText.textContent = "⚠ 画面で遊びを検知！徳が下がります！";
+                    statusText.style.color = "red";
+                    tokuPoint = Math.max(0, tokuPoint - 100); 
+                    saveUserData();
+                } else {
+                    statusText.textContent = "素晴らしい集中力です。";
+                    statusText.style.color = "var(--accent-color)";
+                    tokuPoint += 10; 
+                }
+            } catch (e) { console.error("AI判定エラー:", e); }
+        }
+
         // --- ゲームループ ---
         function updateGame() { 
-            if(isDetecting) { 
+            // 判定：顔がある AND スマホがない
+            if(isDetecting && !isPhoneDetected) { 
                 tokuPoint++;
                 updatePresence(true);
                 saveUserData();
@@ -635,11 +747,18 @@
                 if(tokuPoint % 10 === 0) { 
                     messageIndex = (messageIndex + 1) % workingMessages.length; 
                     statusText.textContent = workingMessages[messageIndex]; 
+                    statusText.style.color = "var(--accent-color)";
                 } 
+            } else if (isPhoneDetected) {
+                // スマホ警告
+                statusText.textContent = "⚠ 邪念（スマホ）を検知しました。徳が積まれません。";
+                statusText.style.color = "red";
             } else { 
                 statusText.textContent = restingMessages[Math.floor(Math.random() * restingMessages.length)]; 
+                statusText.style.color = "var(--accent-color)";
             } 
             
+            // レベル・バー更新
             let currentLevelInfo = omamoriLevels[0]; 
             let nextLevelInfo = omamoriLevels[1]; 
             for (let i = omamoriLevels.length - 1; i >= 0; i--) { 
@@ -666,7 +785,6 @@
             } else { 
                 progressBar.style.width = "100%"; 
                 progressBar.style.backgroundColor = "#ffd700"; 
-                
                 if (tokuPoint >= MAX_TOKU) {
                     archiveAndReset(currentLevelInfo);
                     return; 
@@ -689,15 +807,13 @@
             tokuPoint = 0;
             
             await forceSave();
-
             alert(`【満願成就】\nおめでとうございます。\n「${finishedWish}」の徳が満ちました。\nお守りは神棚に奉納されます。`);
             location.reload();
         }
 
-        // --- 神棚レンダリング (UI改装版) ---
         function renderKamidana() {
             archiveListEl.innerHTML = "";
-            archiveListEl.className = "kamidana-shelf"; // CSSクラス適用
+            archiveListEl.className = "kamidana-shelf"; 
 
             if (!archives || archives.length === 0) {
                 archiveListEl.innerHTML = "<p style='grid-column: 1/-1; color:#888;'>まだ奉納されたお守りはありません。<br>日々の徳を積みましょう。</p>";
@@ -719,7 +835,7 @@
             });
         }
 
-        // --- イベント設定 ---
+        // --- イベント ---
         omamoriImage.addEventListener('click', () => { 
             const message = omikujiMessages[Math.floor(Math.random() * omikujiMessages.length)]; 
             messagePopup.textContent = message; 
@@ -760,9 +876,7 @@
         });
         
         window.addEventListener('beforeunload', () => {
-            if (currentUser) {
-                forceSave(); 
-            }
+            if (currentUser) { forceSave(); }
         });
 
     </script>
@@ -778,6 +892,7 @@
     <div id="kitsunebi-container"></div>
 
     <button id="kamidana-btn">神棚を見る</button>
+    <button id="start-screen-btn">📺 画面監視を開始</button>
 
     <main class="main-content">
         <div class="wish-label">祈願</div>
