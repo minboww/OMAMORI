@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>育てるお守り - 願いと神棚</title>
+    <title>育てるお守り - 繋がりと神棚</title>
     <style>
         /* --- 基本設定 --- */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap');
@@ -39,13 +39,13 @@
             border-radius: 50%;
             filter: blur(4px);
             opacity: 0;
-            animation: floatUp 8s ease-in-out forwards;
+            animation: floatUp 10s ease-in-out forwards;
         }
         @keyframes floatUp {
             0% { transform: translateY(0) scale(0.5); opacity: 0; }
-            20% { opacity: 0.6; }
+            10% { opacity: 0.6; }
             80% { opacity: 0.6; }
-            100% { transform: translateY(-150px) scale(0); opacity: 0; }
+            100% { transform: translateY(-200px) scale(0); opacity: 0; }
         }
         
         /* --- メインコンテンツ --- */
@@ -68,12 +68,14 @@
             font-size: 2.2rem; 
             margin: 0 0 10px 0; 
             color: #444; 
+            min-height: 3.5rem;
         }
         
         #omamori-level-name { 
             font-size: 1rem; 
             margin: -5px 0 20px 0; 
             color: #888; 
+            min-height: 1.2rem;
         }
         
         #omamori-image { 
@@ -128,6 +130,7 @@
             border-radius: 30px; 
             overflow: hidden; 
             background-color: #eee; 
+            position: relative;
         }
         video { 
             width: 100%; height: 100%; 
@@ -183,6 +186,8 @@
             border: 1px solid var(--accent-color);
             padding: 5px 15px; font-size: 0.9rem;
             z-index: 50;
+            cursor: pointer;
+            border-radius: 20px;
         }
 
         /* --- 神棚アーカイブリスト --- */
@@ -197,12 +202,38 @@
         .archive-item img { width: 50px; height: 50px; object-fit: contain; margin-right: 15px; }
         .archive-info h4 { margin: 0; font-size: 1rem; color: #444; }
         .archive-info p { margin: 5px 0 0; font-size: 0.8rem; color: #888; }
+        
+        /* ローディングオーバーレイ */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column;
+            transition: opacity 0.5s;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color);
+            border-radius: 50%; animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     </style>
     <script type="module">
         import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-        // DOM要素
+        // --- Firebase 初期化 ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'omamori-app';
+
+        // --- DOM要素 ---
         const video = document.getElementById('webcam-video');
         const statusText = document.getElementById('status-text');
         const omamoriImage = document.getElementById('omamori-image');
@@ -212,6 +243,7 @@
         const messagePopup = document.getElementById('message-popup');
         const bodyEl = document.body;
         const kitsunebiContainer = document.getElementById('kitsunebi-container');
+        const loadingOverlay = document.getElementById('loading-overlay');
         
         // モーダル関連
         const wishModal = document.getElementById('wish-modal');
@@ -227,13 +259,18 @@
         let faceDetector;
         let lastVideoTime = -1;
         let isDetecting = false;
+        let currentUser = null;
         
-        // データロード
-        const savedToku = localStorage.getItem('omamoriToku');
-        let tokuPoint = savedToku ? parseInt(savedToku, 10) : 0;
+        // ゲーム状態
+        let currentWish = "";
+        let tokuPoint = 0;
+        let archives = [];
+        let isDataLoaded = false;
         
-        // 過去のアーカイブ
-        let archives = JSON.parse(localStorage.getItem('omamoriArchives')) || [];
+        // Firebase同期間隔制御
+        let lastSaveTime = 0;
+        const SAVE_INTERVAL = 5000; // 5秒に1回保存
+        let lastPresenceUpdate = 0;
         
         const omamoriLevels = [
             { level: 1, name: "祈りの始まり", tokuNeeded: 0, imageUrl: "images/001.png" },
@@ -247,7 +284,6 @@
             { level: 9, name: "太陽の恵み", tokuNeeded: 3600, imageUrl: "images/009.png" },
             { level: 10, name: "星々の叡智", tokuNeeded: 5400, imageUrl: "images/010.png" }
         ];
-        // レベル10が最大（満願）
         const MAX_TOKU = omamoriLevels[9].tokuNeeded; 
 
         const workingMessages = ["静かに見守っています…", "その調子、素敵です", "あなたの努力は、光となります", "一歩一歩、進んでいますね"];
@@ -255,11 +291,98 @@
         const omikujiMessages = ["今日の努力は、明日の力となるでしょう", "焦らなくても大丈夫", "小さな一歩が、大きな飛躍に繋がります", "あなたなら、きっとできます", "よく頑張っていますね。えらい！"];
         let messageIndex = 0;
 
-        // --- カメラ & 顔認識 ---
+        // --- 1. 認証とデータロード ---
+        const initAuth = async () => {
+             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+
+        initAuth();
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                console.log("Logged in:", user.uid);
+                await loadUserData(user.uid);
+                initPresenceListener(); // 狐火受信開始
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                    startApp();
+                }, 500);
+            }
+        });
+
+        // --- 2. Firestore データ管理 ---
+        async function loadUserData(userId) {
+            const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'data', 'omamori');
+            try {
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    currentWish = data.currentWish || "";
+                    tokuPoint = data.tokuPoint || 0;
+                    archives = data.archives || [];
+                    
+                    // UI反映
+                    userWishText.textContent = currentWish;
+                    if (!currentWish) {
+                        wishModal.classList.add('active');
+                    }
+                } else {
+                    // 新規ユーザー
+                    wishModal.classList.add('active');
+                }
+                isDataLoaded = true;
+            } catch (error) {
+                console.error("Error loading data:", error);
+                alert("データの読み込みに失敗しました。再読み込みしてください。");
+            }
+        }
+
+        async function saveUserData() {
+            if (!currentUser || !isDataLoaded) return;
+            const now = Date.now();
+            if (now - lastSaveTime < SAVE_INTERVAL) return; // 間引き
+
+            lastSaveTime = now;
+            const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'omamori');
+            
+            try {
+                await setDoc(userDocRef, {
+                    currentWish: currentWish,
+                    tokuPoint: tokuPoint,
+                    archives: archives,
+                    lastUpdated: serverTimestamp()
+                }, { merge: true });
+            } catch (e) {
+                console.error("Save error:", e);
+            }
+        }
+
+        async function forceSave() {
+             if (!currentUser) return;
+             const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'omamori');
+             await setDoc(userDocRef, {
+                currentWish: currentWish,
+                tokuPoint: tokuPoint,
+                archives: archives,
+                lastUpdated: serverTimestamp()
+            }, { merge: true });
+        }
+
+
+        // --- 3. カメラ & 顔認識 ---
         function setIsDetecting(newStatus) {
             if (isDetecting !== newStatus) {
                 isDetecting = newStatus;
                 bodyEl.style.background = isDetecting ? 'var(--bg-color-active)' : 'var(--bg-color-default)';
+                
+                // ステータス変更時に即座にPresence更新を試みる
+                updatePresence(newStatus);
             }
         }
         
@@ -297,7 +420,67 @@
             window.requestAnimationFrame(predictWebcam);
         }
 
-        // --- A. 狐火システム (他ユーザーの気配) ---
+        // --- 4. 狐火 (オンライン機能) ---
+        
+        // 自分のステータスを送信 (Presence)
+        async function updatePresence(isActive) {
+            if (!currentUser) return;
+            
+            // 頻度制御 (5秒に1回、またはステータス変化時)
+            const now = Date.now();
+            if (isActive && (now - lastPresenceUpdate < 5000)) return; 
+            
+            lastPresenceUpdate = now;
+
+            const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', currentUser.uid);
+            
+            try {
+                if (isActive) {
+                    await setDoc(presenceRef, {
+                        isActive: true,
+                        lastActive: serverTimestamp()
+                    });
+                } else {
+                    // 非アクティブなら削除するか、フラグを折る (今回はフラグ)
+                    // ただし、頻繁な書き込みを避けるため、isActive=falseの即時送信は必須ではないが
+                    // 切断検知のため更新しておくと親切
+                    /* await updateDoc(presenceRef, { isActive: false }); 
+                       ↑これをやると頻繁な更新になるので、
+                       「更新が止まったら非アクティブ」とみなすロジック(受信側)に任せる
+                    */
+                }
+            } catch (e) {
+                // console.error(e); // エラーは無視（表示に影響しないため）
+            }
+        }
+
+        // 他人のステータスを受信
+        function initPresenceListener() {
+            const presenceColl = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
+            
+            // 全件取得してクライアントでフィルタリング (件数が少ない想定)
+            onSnapshot(presenceColl, (snapshot) => {
+                const now = Date.now();
+                snapshot.forEach(doc => {
+                    if (doc.id === currentUser?.uid) return; // 自分は除外
+                    
+                    const data = doc.data();
+                    // 最終更新が15秒以内ならアクティブとみなす
+                    if (data.isActive && data.lastActive) {
+                        const lastActiveTime = data.lastActive.toMillis();
+                        if (now - lastActiveTime < 15000) {
+                            // 確率で狐火を出現させる (毎回出すとうるさいので)
+                            if (Math.random() < 0.3) {
+                                spawnKitsunebi();
+                            }
+                        }
+                    }
+                });
+            }, (error) => {
+                console.log("Presence listen error:", error);
+            });
+        }
+
         function spawnKitsunebi() {
             const el = document.createElement('div');
             el.className = 'kitsunebi';
@@ -305,22 +488,17 @@
             el.style.left = Math.random() * 90 + 5 + '%'; 
             el.style.top = Math.random() * 40 + 60 + '%';
             kitsunebiContainer.appendChild(el);
-            
-            // アニメーション終了後に削除
-            setTimeout(() => el.remove(), 8000);
+            setTimeout(() => el.remove(), 10000); // アニメーション終了後に削除
         }
-        // 5秒〜15秒間隔でランダムに出現
-        function startKitsunebiLoop() {
-            spawnKitsunebi();
-            setTimeout(startKitsunebiLoop, Math.random() * 10000 + 5000);
-        }
-
 
         // --- ゲームループ ---
         function updateGame() { 
             // 1. 徳の加算
             if(isDetecting) { 
                 tokuPoint++;
+                updatePresence(true); // オンライン通知
+                saveUserData(); // 必要なら保存
+                
                 if(tokuPoint % 10 === 0) { 
                     messageIndex = (messageIndex + 1) % workingMessages.length; 
                     statusText.textContent = workingMessages[messageIndex]; 
@@ -363,17 +541,13 @@
                 // 満願成就処理：アーカイブしてリセット
                 if (tokuPoint >= MAX_TOKU) {
                     archiveAndReset(currentLevelInfo);
-                    return; // ループ中断
+                    return; 
                 }
             } 
-            
-            localStorage.setItem('omamoriToku', tokuPoint);
         }
 
-        // --- A. 神棚（アーカイブ）ロジック ---
-        function archiveAndReset(finalLevelInfo) {
-            const currentWish = localStorage.getItem('omamoriWish') || "無題の願い";
-            
+        // --- 神棚（アーカイブ）ロジック ---
+        async function archiveAndReset(finalLevelInfo) {
             // アーカイブに追加
             const archiveData = {
                 wish: currentWish,
@@ -382,24 +556,25 @@
                 image: finalLevelInfo.imageUrl,
                 rank: finalLevelInfo.name
             };
-            archives.unshift(archiveData); // 新しいものを先頭に
-            localStorage.setItem('omamoriArchives', JSON.stringify(archives));
-
-            // 通知
-            alert(`【満願成就】\nおめでとうございます。\n「${currentWish}」の徳が満ちました。\nお守りは神棚に奉納されます。`);
+            archives.unshift(archiveData); // 先頭に追加
 
             // リセット
+            const finishedWish = currentWish;
+            currentWish = "";
             tokuPoint = 0;
-            localStorage.setItem('omamoriToku', 0);
-            localStorage.removeItem('omamoriWish');
             
-            // 画面リロードして再スタート
+            // 強制保存
+            await forceSave();
+
+            // 通知
+            alert(`【満願成就】\nおめでとうございます。\n「${finishedWish}」の徳が満ちました。\nお守りは神棚に奉納されます。`);
+            
             location.reload();
         }
 
         function renderKamidana() {
             archiveListEl.innerHTML = "";
-            if (archives.length === 0) {
+            if (!archives || archives.length === 0) {
                 archiveListEl.innerHTML = "<p>まだ奉納されたお守りはありません。</p>";
                 return;
             }
@@ -417,7 +592,7 @@
             });
         }
 
-        // イベント設定
+        // --- イベント設定 ---
         omamoriImage.addEventListener('click', () => { 
             const message = omikujiMessages[Math.floor(Math.random() * omikujiMessages.length)]; 
             messagePopup.textContent = message; 
@@ -429,32 +604,24 @@
 
         // アプリ起動
         function startApp() {
-            const savedWish = localStorage.getItem('omamoriWish');
-            userWishText.textContent = savedWish;
-            omamoriImage.src = omamoriLevels[0].imageUrl;
-            updateGame();
-            createFaceDetector();
-            setInterval(updateGame, 1000);
-            startKitsunebiLoop(); // 狐火開始
-        }
-
-        // 初期化
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedWish = localStorage.getItem('omamoriWish');
-            if (savedWish) {
-                wishModal.classList.remove('active');
-                startApp();
-            } else {
-                wishModal.classList.add('active'); // 願い事入力
+            if (currentWish) {
+                omamoriImage.src = omamoriLevels[0].imageUrl; // 初期化時はLv1の画像にしておく(updateGameで修正される)
+                updateGame(); // 初回更新
+                createFaceDetector();
+                setInterval(updateGame, 1000);
             }
-        });
+        }
 
         // 願い事決定ボタン
         submitWishButton.addEventListener('click', () => {
             const newWish = wishInput.value.trim();
             if (newWish) {
-                localStorage.setItem('omamoriWish', newWish);
+                currentWish = newWish;
+                userWishText.textContent = currentWish;
                 wishModal.classList.remove('active');
+                
+                // 初回保存
+                saveUserData();
                 startApp();
             } else {
                 alert('願い事や目標を入力してください。');
@@ -469,10 +636,23 @@
         closeKamidanaBtn.addEventListener('click', () => {
             kamidanaModal.classList.remove('active');
         });
+        
+        // ページ離脱時の保存試行 (Beacon APIがベストだがFirestoreは非同期なのでベストエフォート)
+        window.addEventListener('beforeunload', () => {
+            if (currentUser) {
+                // ここでのawaitは保証されないが、リクエストを送る試み
+                forceSave(); 
+            }
+        });
 
     </script>
 </head>
 <body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>神棚を準備中...</p>
+    </div>
+
     <!-- 狐火レイヤー -->
     <div id="kitsunebi-container"></div>
 
