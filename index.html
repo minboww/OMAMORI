@@ -667,20 +667,26 @@
             location.reload();
         }
 
-        function renderKamidana() {
+       function renderKamidana() {
             archiveListEl.innerHTML = "";
+            
+            // クラス名を変更（CSSでグリッド表示にするため）
+            archiveListEl.className = "kamidana-shelf"; 
+
             if (!archives || archives.length === 0) {
-                archiveListEl.innerHTML = "<p>まだ奉納されたお守りはありません。</p>";
+                archiveListEl.innerHTML = "<p style='grid-column: 1/-1; color:#888;'>まだ奉納されたお守りはありません。<br>日々の徳を積みましょう。</p>";
                 return;
             }
             archives.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'archive-item';
                 div.innerHTML = `
+                    <div class="stamp"><span>満願<br>成就</span></div>
                     <img src="${item.image}">
                     <div class="archive-info">
                         <h4>${item.wish}</h4>
-                        <p>${item.date} 奉納 / ${item.rank}</p>
+                        <p>${item.date} 奉納</p>
+                        <p style="font-size:0.7rem; color:#b48a4c;">${item.rank}</p>
                     </div>
                 `;
                 archiveListEl.appendChild(div);
