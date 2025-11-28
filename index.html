@@ -12,6 +12,8 @@
             --bg-color-active: linear-gradient(to top, #fff5c1, #fffbeb); 
             --font-color: #5c5c5c;
             --accent-color: #b48a4c;
+            --shrine-red: #b73e3e; /* 神社の朱色 */
+            --wood-color: #dcc085; /* 白木の色 */
         }
         body { 
             font-family: 'Noto Serif JP', serif; 
@@ -30,7 +32,7 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
-            z-index: 1; /* 背景より手前、コンテンツより奥 */
+            z-index: 1;
         }
         .kitsunebi {
             position: absolute;
@@ -57,11 +59,10 @@
             align-items: center; 
             padding: 20px; 
             text-align: center;
-            z-index: 10; /* 狐火より手前 */
+            z-index: 10; 
             position: relative;
         }
         
-        /* 願い事表示 */
         .wish-label { font-size: 0.9rem; color: var(--accent-color); margin-bottom: 5px; }
         #user-wish-text { 
             font-weight: 700; 
@@ -148,7 +149,7 @@
             pointer-events: none; font-size: 1rem; z-index: 100;
         }
 
-        /* --- モーダル (入力・神棚共通) --- */
+        /* --- モーダル (共通) --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
@@ -179,24 +180,13 @@
         }
         button:hover { background-color: #9a733a; }
 
-        /* --- 神棚ボタン --- */
+        /* --- 神棚ボタン（木札風） --- */
         #kamidana-btn {
             position: fixed; top: 20px; right: 20px;
-            background: rgba(255,255,255,0.8); color: var(--accent-color);
-            border: 1px solid var(--accent-color);
-            padding: 5px 15px; font-size: 0.9rem;
-            z-index: 50;
-            cursor: pointer;
-            border-radius: 20px;
-        }
-
-      /* --- 神棚ボタン（木札風） --- */
-        #kamidana-btn {
-            position: fixed; top: 20px; right: 20px;
-            background: linear-gradient(to bottom, #f3eac8, #dcc085); /* 木の質感 */
+            background: linear-gradient(to bottom, #f3eac8, #dcc085);
             color: #5c4033;
             border: 1px solid #8c6a48;
-            border-bottom: 4px solid #8c6a48; /* 立体感 */
+            border-bottom: 4px solid #8c6a48;
             padding: 10px 20px;
             font-family: 'Noto Serif JP', serif;
             font-weight: 700;
@@ -212,20 +202,17 @@
             border-bottom: 1px solid #8c6a48;
         }
         #kamidana-btn::before {
-            content: '⛩';
-            margin-right: 8px;
-            color: #b73e3e; /* 鳥居の赤 */
+            content: '⛩'; margin-right: 8px; color: var(--shrine-red);
         }
 
         /* --- 神棚アーカイブリスト（棚） --- */
         .kamidana-shelf {
-            /* 画面全体を「棚」に見立てる */
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 20px;
             padding: 20px;
             background-color: #fcf9f2;
-            border-top: 4px solid #b73e3e; /* 朱色の梁 */
+            border-top: 4px solid var(--shrine-red);
             margin-top: 10px;
             max-height: 50vh;
             overflow-y: auto;
@@ -239,74 +226,83 @@
             padding: 15px 10px;
             border-radius: 8px 8px 0 0;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            display: flex; flex-direction: column; align-items: center;
             text-align: center;
             transition: transform 0.2s;
-            background-image: linear-gradient(#fff 90%, #f0f0f0 100%); /* 下部を少し暗く */
+            background-image: linear-gradient(#fff 90%, #f0f0f0 100%);
         }
         .archive-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(183, 62, 62, 0.2);
-            border-color: #b73e3e;
+            border-color: var(--shrine-red);
         }
 
         .archive-item img { 
             width: 60px; height: 60px; 
-            object-fit: contain; 
-            margin-bottom: 10px;
+            object-fit: contain; margin-bottom: 10px;
             filter: drop-shadow(0 2px 4px rgba(212, 175, 55, 0.5));
         }
         
         .archive-info h4 { 
-            margin: 0 0 5px 0; 
-            font-size: 1rem; 
-            color: #333; 
-            border-bottom: 1px solid #b73e3e;
-            padding-bottom: 4px;
-            display: inline-block;
+            margin: 0 0 5px 0; font-size: 1rem; color: #333; 
+            border-bottom: 1px solid var(--shrine-red);
+            padding-bottom: 4px; display: inline-block;
         }
         .archive-info p { margin: 0; font-size: 0.75rem; color: #888; }
         
         /* 満願成就スタンプ */
         .stamp {
-            position: absolute;
-            top: 5px; right: 5px;
+            position: absolute; top: 5px; right: 5px;
             width: 40px; height: 40px;
-            border: 2px solid #ff4d4d;
-            border-radius: 50%;
-            color: #ff4d4d;
-            font-size: 0.6rem;
+            border: 2px solid #ff4d4d; border-radius: 50%;
+            color: #ff4d4d; font-size: 0.6rem;
             display: flex; justify-content: center; align-items: center;
-            transform: rotate(15deg);
-            opacity: 0.8;
-            font-weight: bold;
-            pointer-events: none;
+            transform: rotate(15deg); opacity: 0.8;
+            font-weight: bold; pointer-events: none;
         }
-        .stamp span {
-             border: 1px solid #ff4d4d; padding: 2px;
+        .stamp span { border: 1px solid #ff4d4d; padding: 2px; }
+
+        /* モーダル装飾強化 */
+        .kamidana-modal-content {
+            border: 2px solid var(--shrine-red);
+            background-color: #fffbf0;
+        }
+        .kamidana-modal-content h3 {
+            font-size: 1.8rem; color: var(--shrine-red);
+            border-bottom: 1px double var(--wood-color);
+            padding-bottom: 10px; margin-bottom: 20px;
         }
 
-        /* モーダル全体の装飾強化 */
-        .modal-content {
-            border: 2px solid #b73e3e; /* 神社の朱色 */
-            background-color: #fffbf0; /* 和紙っぽい白 */
+        /* オンラインカウンター */
+        #online-counter {
+            position: fixed; top: 10px; left: 10px; z-index: 2000;
+            background: rgba(0,0,0,0.6); color: #fff;
+            padding: 5px 12px; border-radius: 20px;
+            font-size: 0.8rem; font-family: sans-serif;
+            pointer-events: none;
         }
-        .modal-content h3 {
-            font-size: 1.8rem;
-            color: #b73e3e;
-            border-bottom: 1px double #dcc085;
-            padding-bottom: 10px;
+
+        /* ローディング */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column; transition: opacity 0.5s;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color);
+            border-radius: 50%; animation: spin 1s linear infinite;
             margin-bottom: 20px;
         }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     </style>
     <script type="module">
         import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         // --- Firebase 初期化 (ここを書き換えてください) ---
         // ★★★ 自分のFirebaseプロジェクトの設定に書き換えてください ★★★
@@ -323,7 +319,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'omamori-app'; // アプリID（このままでOKです）
+        const appId = 'omamori-app';
 
         // --- DOM要素 ---
         const video = document.getElementById('webcam-video');
@@ -361,7 +357,7 @@
         
         // Firebase同期間隔制御
         let lastSaveTime = 0;
-        const SAVE_INTERVAL = 5000; // 5秒に1回保存
+        const SAVE_INTERVAL = 5000;
         let lastPresenceUpdate = 0;
         
         const omamoriLevels = [
@@ -386,7 +382,6 @@
         // --- 1. 認証とデータロード ---
         const initAuth = async () => {
             try {
-                // 自分のプロジェクト用：匿名認証のみ実行
                 await signInAnonymously(auth);
             } catch (error) {
                 console.error("Auth Error:", error);
@@ -402,7 +397,7 @@
                 currentUser = user;
                 console.log("Logged in:", user.uid);
                 await loadUserData(user.uid);
-                initPresenceListener(); // 狐火受信開始
+                initPresenceListener();
                 loadingOverlay.style.opacity = '0';
                 setTimeout(() => {
                     loadingOverlay.style.display = 'none';
@@ -422,13 +417,11 @@
                     tokuPoint = data.tokuPoint || 0;
                     archives = data.archives || [];
                     
-                    // UI反映
                     userWishText.textContent = currentWish;
                     if (!currentWish) {
                         wishModal.classList.add('active');
                     }
                 } else {
-                    // 新規ユーザー
                     wishModal.classList.add('active');
                 }
                 isDataLoaded = true;
@@ -441,7 +434,7 @@
         async function saveUserData() {
             if (!currentUser || !isDataLoaded) return;
             const now = Date.now();
-            if (now - lastSaveTime < SAVE_INTERVAL) return; // 間引き
+            if (now - lastSaveTime < SAVE_INTERVAL) return;
 
             lastSaveTime = now;
             const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'omamori');
@@ -469,14 +462,11 @@
             }, { merge: true });
         }
 
-
         // --- 3. カメラ & 顔認識 ---
         function setIsDetecting(newStatus) {
             if (isDetecting !== newStatus) {
                 isDetecting = newStatus;
                 bodyEl.style.background = isDetecting ? 'var(--bg-color-active)' : 'var(--bg-color-default)';
-                
-                // ステータス変更時に即座にPresence更新を試みる
                 updatePresence(newStatus);
             }
         }
@@ -502,7 +492,7 @@
                 })
                 .catch(err => {
                     console.error("カメラエラー:", err);
-                    alert("カメラを起動できませんでした。ブラウザのカメラアクセス許可を確認してください。");
+                    alert("カメラを起動できませんでした。");
                 }); 
         }
 
@@ -515,18 +505,13 @@
             window.requestAnimationFrame(predictWebcam);
         }
 
-        // --- 4. 狐火 (オンライン機能) ---
-        
-        // 自分のステータスを送信 (Presence)
+        // --- 4. 狐火 & デバッグ (オンライン機能) ---
         async function updatePresence(isActive) {
             if (!currentUser) return;
-            
-            // 頻度制御 (5秒に1回、またはステータス変化時)
             const now = Date.now();
             if (isActive && (now - lastPresenceUpdate < 5000)) return; 
             
             lastPresenceUpdate = now;
-
             const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', currentUser.uid);
             
             try {
@@ -535,22 +520,13 @@
                         isActive: true,
                         lastActive: serverTimestamp()
                     });
-                } else {
-                    // 非アクティブなら削除するか、フラグを折る (今回はフラグ)
-                    // ただし、頻繁な書き込みを避けるため、isActive=falseの即時送信は必須ではないが
-                    // 切断検知のため更新しておくと親切
-                    /* await updateDoc(presenceRef, { isActive: false }); 
-                       ↑これをやると頻繁な更新になるので、
-                       「更新が止まったら非アクティブ」とみなすロジック(受信側)に任せる
-                    */
                 }
             } catch (e) {
-                // console.error(e); // エラーは無視（表示に影響しないため）
+                // ignore error
             }
         }
 
-        // 他人のステータスを受信
-       // 他人のステータスを受信 & 人数カウント
+        // 他人のステータスを受信 & 人数カウント（デバッグ）
         function initPresenceListener() {
             const presenceColl = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
             const counterEl = document.getElementById('online-counter');
@@ -594,20 +570,18 @@
         function spawnKitsunebi() {
             const el = document.createElement('div');
             el.className = 'kitsunebi';
-            // 画面の下半分からランダムに出現
             el.style.left = Math.random() * 90 + 5 + '%'; 
             el.style.top = Math.random() * 40 + 60 + '%';
             kitsunebiContainer.appendChild(el);
-            setTimeout(() => el.remove(), 10000); // アニメーション終了後に削除
+            setTimeout(() => el.remove(), 10000);
         }
 
         // --- ゲームループ ---
         function updateGame() { 
-            // 1. 徳の加算
             if(isDetecting) { 
                 tokuPoint++;
-                updatePresence(true); // オンライン通知
-                saveUserData(); // 必要なら保存
+                updatePresence(true);
+                saveUserData();
                 
                 if(tokuPoint % 10 === 0) { 
                     messageIndex = (messageIndex + 1) % workingMessages.length; 
@@ -617,7 +591,6 @@
                 statusText.textContent = restingMessages[Math.floor(Math.random() * restingMessages.length)]; 
             } 
             
-            // 2. レベル計算
             let currentLevelInfo = omamoriLevels[0]; 
             let nextLevelInfo = omamoriLevels[1]; 
             for (let i = omamoriLevels.length - 1; i >= 0; i--) { 
@@ -628,7 +601,6 @@
                 } 
             } 
             
-            // 3. 画像更新
             if(omamoriImage.src.endsWith(currentLevelInfo.imageUrl) === false) { 
                 omamoriImage.style.transform = "scale(0.8)"; 
                 setTimeout(() => { 
@@ -639,16 +611,13 @@
             
             omamoriLevelName.textContent = currentLevelInfo.name;
          
-            // 4. バー更新 & A. 神棚アーカイブ判定 (満願成就)
             if(nextLevelInfo) { 
                 const progress = (tokuPoint - currentLevelInfo.tokuNeeded) / (nextLevelInfo.tokuNeeded - currentLevelInfo.tokuNeeded); 
                 progressBar.style.width = `${progress * 100}%`; 
             } else { 
-                // 最大レベル到達時
                 progressBar.style.width = "100%"; 
                 progressBar.style.backgroundColor = "#ffd700"; 
                 
-                // 満願成就処理：アーカイブしてリセット
                 if (tokuPoint >= MAX_TOKU) {
                     archiveAndReset(currentLevelInfo);
                     return; 
@@ -656,9 +625,7 @@
             } 
         }
 
-        // --- 神棚（アーカイブ）ロジック ---
         async function archiveAndReset(finalLevelInfo) {
-            // アーカイブに追加
             const archiveData = {
                 wish: currentWish,
                 date: new Date().toLocaleDateString(),
@@ -666,27 +633,22 @@
                 image: finalLevelInfo.imageUrl,
                 rank: finalLevelInfo.name
             };
-            archives.unshift(archiveData); // 先頭に追加
+            archives.unshift(archiveData);
 
-            // リセット
             const finishedWish = currentWish;
             currentWish = "";
             tokuPoint = 0;
             
-            // 強制保存
             await forceSave();
 
-            // 通知
             alert(`【満願成就】\nおめでとうございます。\n「${finishedWish}」の徳が満ちました。\nお守りは神棚に奉納されます。`);
-            
             location.reload();
         }
 
-       function renderKamidana() {
+        // --- 神棚レンダリング (UI改装版) ---
+        function renderKamidana() {
             archiveListEl.innerHTML = "";
-            
-            // クラス名を変更（CSSでグリッド表示にするため）
-            archiveListEl.className = "kamidana-shelf"; 
+            archiveListEl.className = "kamidana-shelf"; // CSSクラス適用
 
             if (!archives || archives.length === 0) {
                 archiveListEl.innerHTML = "<p style='grid-column: 1/-1; color:#888;'>まだ奉納されたお守りはありません。<br>日々の徳を積みましょう。</p>";
@@ -718,25 +680,21 @@
             }, 2500); 
         });
 
-        // アプリ起動
         function startApp() {
             if (currentWish) {
-                omamoriImage.src = omamoriLevels[0].imageUrl; // 初期化時はLv1の画像にしておく(updateGameで修正される)
-                updateGame(); // 初回更新
+                omamoriImage.src = omamoriLevels[0].imageUrl; 
+                updateGame(); 
                 createFaceDetector();
                 setInterval(updateGame, 1000);
             }
         }
 
-        // 願い事決定ボタン
         submitWishButton.addEventListener('click', () => {
             const newWish = wishInput.value.trim();
             if (newWish) {
                 currentWish = newWish;
                 userWishText.textContent = currentWish;
                 wishModal.classList.remove('active');
-                
-                // 初回保存
                 saveUserData();
                 startApp();
             } else {
@@ -744,7 +702,6 @@
             }
         });
 
-        // 神棚ボタン
         kamidanaBtn.addEventListener('click', () => {
             renderKamidana();
             kamidanaModal.classList.add('active');
@@ -753,10 +710,8 @@
             kamidanaModal.classList.remove('active');
         });
         
-        // ページ離脱時の保存試行 (Beacon APIがベストだがFirestoreは非同期なのでベストエフォート)
         window.addEventListener('beforeunload', () => {
             if (currentUser) {
-                // ここでのawaitは保証されないが、リクエストを送る試み
                 forceSave(); 
             }
         });
@@ -765,18 +720,16 @@
 </head>
 <body>
     <div id="loading-overlay">
-     
         <div class="spinner"></div>
         <p>神棚を準備中...</p>
     </div>
 
-    <!-- 狐火レイヤー -->
+    <div id="online-counter">Online: -</div>
+
     <div id="kitsunebi-container"></div>
 
     <button id="kamidana-btn">神棚を見る</button>
-    <div id="online-counter" style="position: fixed; top: 10px; left: 10px; z-index: 2000; background: rgba(0,0,0,0.6); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-family: sans-serif; pointer-events: none;">
-        Online: -
-    </div>
+
     <main class="main-content">
         <div class="wish-label">祈願</div>
         <h2 id="user-wish-text"></h2>
@@ -801,7 +754,6 @@
 
     <div id="message-popup"></div>
 
-    <!-- 願い事入力モーダル -->
     <div id="wish-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>縁を結ぶ</h3>
@@ -812,14 +764,12 @@
         </div>
     </div>
 
-    <!-- 神棚（アーカイブ）モーダル -->
     <div id="kamidana-modal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content kamidana-modal-content">
             <h3>神棚</h3>
             <p>満願成就したお守りの記録</p>
-            <div id="archive-list" class="archive-list">
-                <!-- JSで追加 -->
-            </div>
+            <div id="archive-list" class="kamidana-shelf">
+                </div>
             <br>
             <button id="close-kamidana-button" style="background-color: #888;">閉じる</button>
         </div>
