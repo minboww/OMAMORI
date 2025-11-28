@@ -226,12 +226,22 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-        // --- Firebase 初期化 ---
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // --- Firebase 初期化 (ここを書き換えてください) ---
+        // ★★★ 自分のFirebaseプロジェクトの設定に書き換えてください ★★★
+        const firebaseConfig = {
+      apiKey: "AIzaSyCwfM8A0_Kn2JZ6aWLMilRVcCjD0JweUmM",
+  authDomain: "omamori-e5af9.firebaseapp.com",
+  projectId: "omamori-e5af9",
+  storageBucket: "omamori-e5af9.firebasestorage.app",
+  messagingSenderId: "801950673218",
+  appId: "1:801950673218:web:0e2a8fc8faf5ba2a5dc0db",
+        };
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'omamori-app';
+        const appId = 'omamori-app'; // アプリID（このままでOKです）
 
         // --- DOM要素 ---
         const video = document.getElementById('webcam-video');
@@ -293,10 +303,13 @@
 
         // --- 1. 認証とデータロード ---
         const initAuth = async () => {
-             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
+            try {
+                // 自分のプロジェクト用：匿名認証のみ実行
                 await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Auth Error:", error);
+                alert("認証エラー：Firebaseコンソールで「匿名認証」が有効になっているか確認してください。");
+                loadingOverlay.style.display = 'none';
             }
         };
 
