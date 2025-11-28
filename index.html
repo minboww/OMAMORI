@@ -28,6 +28,7 @@
         }
 
         /* --- A. 狐火 (Kitsunebi) --- */
+ /* --- A. 狐火 (Kitsunebi) - 漂う魂 --- */
         #kitsunebi-container {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -36,20 +37,26 @@
         }
         .kitsunebi {
             position: absolute;
-            width: 15px; height: 15px;
-            background: radial-gradient(circle, rgba(255,215,0,0.8) 0%, rgba(255,165,0,0) 70%);
+            width: 20px; height: 20px;
+            background: radial-gradient(circle, rgba(255,215,0,0.9) 0%, rgba(255,165,0,0.2) 60%, transparent 80%);
             border-radius: 50%;
-            filter: blur(4px);
-            opacity: 0;
-            animation: floatUp 10s ease-in-out forwards;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(0.5); opacity: 0; }
-            10% { opacity: 0.6; }
-            80% { opacity: 0.6; }
-            100% { transform: translateY(-200px) scale(0); opacity: 0; }
+            filter: blur(2px);
+            opacity: 0; /* 初期状態 */
+            transition: opacity 2s ease-in-out, top 5s ease, left 5s ease; /* 出現・消失・移動をふんわりと */
+            box-shadow: 0 0 15px rgba(255, 200, 0, 0.6);
         }
         
+        /* ゆらゆら漂うアニメーション */
+        .kitsunebi.active {
+            opacity: 0.8;
+            animation: drifting 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes drifting {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(15px, -15px) scale(1.1); }
+            100% { transform: translate(-15px, 10px) scale(0.9); }
+        }
         /* --- メインコンテンツ --- */
         .main-content { 
             flex-grow: 1; 
@@ -348,7 +355,7 @@
         let lastVideoTime = -1;
         let isDetecting = false;
         let currentUser = null;
-        
+        const activeSpirits = {};
         // ゲーム状態
         let currentWish = "";
         let tokuPoint = 0;
@@ -525,55 +532,99 @@
                 // ignore error
             }
         }
-
-        // 他人のステータスを受信 & 人数カウント（デバッグ）
-    // 他人のステータスを受信 & 人数カウント（デバッグ）
+// 他人のステータスを常時監視 & 狐火の管理
         function initPresenceListener() {
             const presenceColl = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
             const counterEl = document.getElementById('online-counter');
+            const container = document.getElementById('kitsunebi-container');
             
             onSnapshot(presenceColl, (snapshot) => {
                 const now = Date.now();
-                let activeCount = 0; // アクティブ人数カウンター
+                const currentActiveIds = new Set(); // 今この瞬間にアクティブな人のIDリスト
 
+                // 1. データベース上の全ユーザーを確認
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    
-                    // 1. アクティブ判定 (15秒以内)
-                    let isActive = false;
+                    const uid = doc.id;
+
+                    // 15秒以内に更新があれば「生存」とみなす
                     if (data.isActive && data.lastActive) {
                         const lastActiveTime = data.lastActive.toMillis();
                         if (now - lastActiveTime < 15000) {
-                            isActive = true;
-                            activeCount++; // 人数を増やす
-                        }
-                    }
+                            
+                            currentActiveIds.add(uid); // 生存リストに追加
 
-                    // 2. 狐火の出現判定 (自分以外、かつアクティブな場合)
-                    if (isActive && doc.id !== currentUser?.uid) {
-                        // ★修正箇所：確率判定（if Math.random...）を削除し、必ず実行する
-                        spawnKitsunebi();
+                            // ★ まだ狐火が出ていないなら、生成する
+                            if (!activeSpirits[uid]) {
+                                createSpirit(uid, container);
+                            }
+                        }
                     }
                 });
 
-                // デバッグ表示更新
+                // 2. 「いなくなった人」の狐火を消す
+                // (表示中の全狐火IDを確認し、生存リストになければ削除)
+                Object.keys(activeSpirits).forEach(uid => {
+                    if (!currentActiveIds.has(uid)) {
+                        removeSpirit(uid);
+                    }
+                });
+
+                // 3. 人数表示更新
                 if(counterEl) {
-                    counterEl.textContent = `Online: ${activeCount}`;
+                    // 自分を含めた人数
+                    counterEl.textContent = `Online: ${currentActiveIds.size}`;
                 }
 
             }, (error) => {
                 console.log("Presence listen error:", error);
             });
         }
-        function spawnKitsunebi() {
+
+        // 狐火を生成する関数
+        function createSpirit(uid, container) {
             const el = document.createElement('div');
             el.className = 'kitsunebi';
-            el.style.left = Math.random() * 90 + 5 + '%'; 
-            el.style.top = Math.random() * 40 + 60 + '%';
-            kitsunebiContainer.appendChild(el);
-            setTimeout(() => el.remove(), 10000);
+            
+            // 画面内のランダムな位置に出現（中央付近に寄りやすく調整）
+            const randomX = Math.random() * 80 + 10; // 10% ~ 90%
+            const randomY = Math.random() * 60 + 20; // 20% ~ 80%
+            
+            el.style.left = randomX + '%';
+            el.style.top = randomY + '%';
+            
+            // アニメーションのタイミングを少しずらす（自然に見せるため）
+            el.style.animationDelay = (Math.random() * 5) + 's';
+
+            container.appendChild(el);
+            
+            // 少し待ってからふわっと表示（transitionのため）
+            setTimeout(() => {
+                el.classList.add('active');
+            }, 100);
+
+            // 管理リストに登録
+            activeSpirits[uid] = el;
         }
 
+        // 狐火を削除する関数
+        function removeSpirit(uid) {
+            const el = activeSpirits[uid];
+            if (el) {
+                // ふわっと消す
+                el.classList.remove('active'); // opacityが0になる
+                
+                // 完全に透明になった頃にDOMから削除
+                setTimeout(() => {
+                    if (el.parentNode) {
+                        el.parentNode.removeChild(el);
+                    }
+                }, 2000); // CSSのtransition時間(2s)に合わせる
+
+                // 管理リストから削除
+                delete activeSpirits[uid];
+            }
+        }
         // --- ゲームループ ---
         function updateGame() { 
             if(isDetecting) { 
