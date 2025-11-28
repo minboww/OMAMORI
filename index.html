@@ -527,6 +527,7 @@
         }
 
         // 他人のステータスを受信 & 人数カウント（デバッグ）
+    // 他人のステータスを受信 & 人数カウント（デバッグ）
         function initPresenceListener() {
             const presenceColl = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
             const counterEl = document.getElementById('online-counter');
@@ -550,10 +551,8 @@
 
                     // 2. 狐火の出現判定 (自分以外、かつアクティブな場合)
                     if (isActive && doc.id !== currentUser?.uid) {
-                        // 確率で狐火を出現させる
-                        if (Math.random() < 0.3) {
-                            spawnKitsunebi();
-                        }
+                        // ★修正箇所：確率判定（if Math.random...）を削除し、必ず実行する
+                        spawnKitsunebi();
                     }
                 });
 
@@ -566,7 +565,6 @@
                 console.log("Presence listen error:", error);
             });
         }
-
         function spawnKitsunebi() {
             const el = document.createElement('div');
             el.className = 'kitsunebi';
