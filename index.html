@@ -550,27 +550,42 @@
         }
 
         // 他人のステータスを受信
+       // 他人のステータスを受信 & 人数カウント
         function initPresenceListener() {
             const presenceColl = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
+            const counterEl = document.getElementById('online-counter');
             
-            // 全件取得してクライアントでフィルタリング (件数が少ない想定)
             onSnapshot(presenceColl, (snapshot) => {
                 const now = Date.now();
+                let activeCount = 0; // アクティブ人数カウンター
+
                 snapshot.forEach(doc => {
-                    if (doc.id === currentUser?.uid) return; // 自分は除外
-                    
                     const data = doc.data();
-                    // 最終更新が15秒以内ならアクティブとみなす
+                    
+                    // 1. アクティブ判定 (15秒以内)
+                    let isActive = false;
                     if (data.isActive && data.lastActive) {
                         const lastActiveTime = data.lastActive.toMillis();
                         if (now - lastActiveTime < 15000) {
-                            // 確率で狐火を出現させる (毎回出すとうるさいので)
-                            if (Math.random() < 0.3) {
-                                spawnKitsunebi();
-                            }
+                            isActive = true;
+                            activeCount++; // 人数を増やす
+                        }
+                    }
+
+                    // 2. 狐火の出現判定 (自分以外、かつアクティブな場合)
+                    if (isActive && doc.id !== currentUser?.uid) {
+                        // 確率で狐火を出現させる
+                        if (Math.random() < 0.3) {
+                            spawnKitsunebi();
                         }
                     }
                 });
+
+                // デバッグ表示更新
+                if(counterEl) {
+                    counterEl.textContent = `Online: ${activeCount}`;
+                }
+
             }, (error) => {
                 console.log("Presence listen error:", error);
             });
@@ -750,6 +765,9 @@
 </head>
 <body>
     <div id="loading-overlay">
+         <div id="online-counter" style="position: fixed; top: 10px; left: 10px; z-index: 2000; background: rgba(0,0,0,0.6); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-family: sans-serif; pointer-events: none;">
+        Online: -
+    </div>
         <div class="spinner"></div>
         <p>神棚を準備中...</p>
     </div>
