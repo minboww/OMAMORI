@@ -10,7 +10,7 @@
         :root { 
             --bg-color-default: linear-gradient(to top, #ece9e6, #ffffff); 
             --bg-color-active: linear-gradient(to top, #fff5c1, #fffbeb); 
-            --bg-color-stop: linear-gradient(to top, #e6e9f0, #eef1f5); /* 停止時の色 */
+            --bg-color-stop: linear-gradient(to top, #e6e9f0, #eef1f5); 
             --font-color: #5c5c5c;
             --accent-color: #b48a4c;
             --shrine-red: #b73e3e; 
@@ -147,6 +147,8 @@
             border-radius: 25px; cursor: pointer; transition: background-color 0.3s;
         }
         button:hover { background-color: #9a733a; }
+        button.secondary { background-color: #aaa; }
+        button.secondary:hover { background-color: #888; }
 
         /* --- UIパーツ --- */
         #kamidana-btn {
@@ -161,13 +163,15 @@
         #kamidana-btn:active { transform: translateY(3px); border-bottom: 1px solid #8c6a48; }
         #kamidana-btn::before { content: '⛩'; margin-right: 8px; color: var(--shrine-red); }
 
-        #start-screen-btn {
+        /* 見守りボタン（手動起動用・通常は非表示） */
+        #start-mimamori-btn {
             position: fixed; top: 75px; right: 20px;
             background-color: #fff; color: #555; border: 1px solid #ccc;
             padding: 8px 15px; font-size: 0.8rem; z-index: 50; cursor: pointer;
             border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none; /* 最初は隠す */
         }
-        #start-screen-btn:hover { background-color: #f9f9f9; }
+        #start-mimamori-btn:hover { background-color: #f9f9f9; }
 
         /* --- 神棚リスト --- */
         .kamidana-shelf {
@@ -239,7 +243,7 @@
         // ★★★ Firebase 設定 ★★★
         // ==========================================
         const firebaseConfig = {
-    apiKey: "AIzaSyCwfM8A0_Kn2JZ6aWLMilRVcCjD0JweUmM",
+         apiKey: "AIzaSyCwfM8A0_Kn2JZ6aWLMilRVcCjD0JweUmM",
   authDomain: "omamori-e5af9.firebaseapp.com",
   projectId: "omamori-e5af9",
   storageBucket: "omamori-e5af9.firebasestorage.app",
@@ -270,13 +274,19 @@
         const wishModal = document.getElementById('wish-modal');
         const wishInput = document.getElementById('omamori-wish-input');
         const submitWishButton = document.getElementById('submit-wish-button');
+        
+        // 追加モーダル：見守り確認
+        const mimamoriConfirmModal = document.getElementById('mimamori-confirm-modal');
+        const enableMimamoriBtn = document.getElementById('enable-mimamori-btn');
+        const skipMimamoriBtn = document.getElementById('skip-mimamori-btn');
+
         const kamidanaModal = document.getElementById('kamidana-modal');
         const kamidanaBtn = document.getElementById('kamidana-btn');
         const closeKamidanaBtn = document.getElementById('close-kamidana-button');
         const archiveListEl = document.getElementById('archive-list');
         
         // 画面監視 & APIキー関連
-        const startScreenBtn = document.getElementById('start-screen-btn');
+        const startMimamoriBtn = document.getElementById('start-mimamori-btn');
         const apiKeyModal = document.getElementById('apikey-modal');
         const apiKeyInput = document.getElementById('gemini-api-key-input');
         const saveApiKeyBtn = document.getElementById('save-apikey-button');
@@ -288,9 +298,9 @@
         let isFaceDetected = false;
         let isPhoneDetected = false; 
         
-        // 画面判定ステータス (Gemini用)
-        // 'safe' = 勉強/仕事, 'out' = 遊び
+        // 画面判定ステータス
         let screenVerdict = 'safe'; 
+        let isMimamoriEnabled = false; // 見守り機能がONかどうか
         
         // ユーザーデータ
         let currentUser = null;
@@ -539,16 +549,23 @@
             }
         }
 
-        // --- 4. 画面監視 (Gemini API) ---
+        // --- 4. 画面の見守り (Gemini API) ---
         
-        startScreenBtn.addEventListener('click', () => {
+        // 開始ボタン(手動)
+        startMimamoriBtn.addEventListener('click', () => {
+            initMimamori();
+        });
+
+        // 見守り機能の初期化フロー
+        function initMimamori() {
             if (!geminiApiKey) {
                 apiKeyModal.classList.add('active');
             } else {
                 startScreenMonitoring();
             }
-        });
+        }
 
+        // APIキー保存
         saveApiKeyBtn.addEventListener('click', () => {
             const key = apiKeyInput.value.trim();
             if (key) {
@@ -568,18 +585,21 @@
                     audio: false
                 });
 
-                startScreenBtn.style.display = 'none';
-                statusText.textContent = "画面監視を開始します...";
-                screenVerdict = 'safe'; // 初期化
+                // UI更新
+                startMimamoriBtn.style.display = 'none';
+                statusText.textContent = "画面の見守りを開始します...";
+                screenVerdict = 'safe'; 
+                isMimamoriEnabled = true; // 有効化
                 
                 screenInterval = setInterval(checkScreenActivity, 60000); 
                 checkScreenActivity(); 
 
                 screenStream.getVideoTracks()[0].onended = () => {
                     clearInterval(screenInterval);
-                    startScreenBtn.style.display = 'block';
-                    alert("画面共有が終了しました。監視を停止します。");
-                    screenVerdict = 'safe'; // 監視終了時はセーフ扱いに戻す
+                    startMimamoriBtn.style.display = 'block';
+                    alert("画面共有が終了しました。見守りを停止します。");
+                    screenVerdict = 'safe'; 
+                    isMimamoriEnabled = false;
                 };
             } catch (err) { console.error(err); }
         }
@@ -605,10 +625,9 @@
         async function analyzeScreenWithGemini(base64Image) {
             if(!geminiApiKey) return;
 
-            // モデルが見つからない対策で gemini-1.5-flash-latest を使用
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-latest:generateContent?key=${geminiApiKey}`;
+            // ★ モデルを gemini-2.0-flash-exp に変更 ★
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key=${geminiApiKey}`;
             
-            // プロンプト：勉強/仕事か、それ以外（遊び）かを判定
             const promptText = `
                 Analyze this screenshot.
                 Is the user currently "Working/Studying" or "Playing/Slacking"?
@@ -640,6 +659,7 @@
                 
                 if (data.error) {
                     console.error("API Error:", data.error);
+                    // 2.0が使えない場合のフォールバックなどを検討しても良いが、一旦ログ出力のみ
                     return;
                 }
 
@@ -656,64 +676,54 @@
 
         // --- 5. ゲームループ (ステータス判定) ---
         function updateGame() { 
-            let currentStatus = 'idle'; // デフォルトは中断
+            let currentStatus = 'idle'; 
             let statusMessage = "";
 
-            // --- 判定ロジック ---
-            // 1. 顔認識ができているか？
+            // 1. 顔認識
             if (!isFaceDetected) {
                 currentStatus = 'idle';
                 statusMessage = "顔が見えません（中断）";
             } 
-            // 2. スマホをいじっていないか？
+            // 2. スマホ検知
             else if (isPhoneDetected) {
                 currentStatus = 'idle';
                 statusMessage = "スマホを検知しました（中断）";
             }
-            // 3. 画面監視で「遊び」と判定されていないか？
-            else if (screenVerdict === 'out') {
+            // 3. 画面見守り (有効な場合のみ)
+            else if (isMimamoriEnabled && screenVerdict === 'out') {
                 currentStatus = 'idle';
-                statusMessage = "画面で遊びを検知中（中断）";
+                statusMessage = "画面に遊びを検知（中断）";
             }
-            // 4. すべてクリアなら「集中」
+            // 4. クリア
             else {
                 currentStatus = 'work';
                 statusMessage = workingMessages[messageIndex];
             }
 
-            // --- UIとデータの更新 ---
-            
-            // バッジ更新
+            // UI更新
             if (currentStatus === 'work') {
                 statusBadge.textContent = "集中（徳積み中）";
                 statusBadge.style.backgroundColor = "var(--accent-color)";
                 bodyEl.style.background = 'var(--bg-color-active)';
                 statusText.style.color = "var(--accent-color)";
 
-                // 徳を積む
                 tokuPoint++;
                 if(tokuPoint % 10 === 0) { 
                     messageIndex = (messageIndex + 1) % workingMessages.length; 
                 }
                 
-                // オンライン通知
                 updatePresence(true);
                 saveUserData();
-
             } else {
                 statusBadge.textContent = "中断（停止中）";
                 statusBadge.style.backgroundColor = "#999";
                 bodyEl.style.background = 'var(--bg-color-stop)';
                 statusText.style.color = "#666";
                 
-                // メッセージ更新（中断理由を表示）
                 statusText.textContent = statusMessage;
-                
-                // 徳は増えない（減りもしない）
-                // プレゼンス更新は停止しても良いが、生存確認のため送っておく（isActiveはtrueのまま）
             }
 
-            // レベル・バー更新
+            // レベル・バー
             let currentLevelInfo = omamoriLevels[0]; 
             let nextLevelInfo = omamoriLevels[1]; 
             for (let i = omamoriLevels.length - 1; i >= 0; i--) { 
@@ -815,10 +825,26 @@
                 userWishText.textContent = currentWish;
                 wishModal.classList.remove('active');
                 saveUserData();
-                startApp();
+                
+                // ★ 願い事入力後 -> 見守り確認モーダルへ
+                mimamoriConfirmModal.classList.add('active');
             } else {
                 alert('願い事や目標を入力してください。');
             }
+        });
+
+        // 見守り確認モーダルのボタン
+        enableMimamoriBtn.addEventListener('click', () => {
+            mimamoriConfirmModal.classList.remove('active');
+            startApp();
+            initMimamori(); // 見守り開始フローへ
+        });
+
+        skipMimamoriBtn.addEventListener('click', () => {
+            mimamoriConfirmModal.classList.remove('active');
+            startApp();
+            // 見守りなしで開始。ボタンだけ表示しておく
+            startMimamoriBtn.style.display = 'block';
         });
 
         kamidanaBtn.addEventListener('click', () => {
@@ -845,7 +871,7 @@
     <div id="kitsunebi-container"></div>
 
     <button id="kamidana-btn">神棚を見る</button>
-    <button id="start-screen-btn">📺 画面監視を開始</button>
+    <button id="start-mimamori-btn">📺 画面の見守りを開始</button>
 
     <main class="main-content">
         <div id="current-status-badge">準備中</div>
@@ -879,6 +905,19 @@
             <input type="text" id="omamori-wish-input" placeholder="例：資格試験合格" maxlength="20">
             <br>
             <button id="submit-wish-button">祈願する</button>
+        </div>
+    </div>
+
+    <div id="mimamori-confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>画面の見守り</h3>
+            <p>邪念（YouTubeやSNSなど）を<br>封じる機能を使いますか？</p>
+            <div style="font-size:0.8rem; color:#888; margin-bottom:20px;">
+                ※画面共有とAPIキーが必要です。<br>※情報はあなたのPC内でのみ処理されます。
+            </div>
+            <button id="enable-mimamori-btn" style="margin-bottom:10px;">機能を使う</button>
+            <br>
+            <button id="skip-mimamori-btn" class="secondary">今は使わない</button>
         </div>
     </div>
 
