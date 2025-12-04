@@ -599,7 +599,7 @@
         async function analyzeScreenWithGemini(base64Image) {
             if(!geminiApiKey) return;
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
             const promptText = `
                 この画像を分析してください。
                 ユーザーは現在「勉強」または「仕事」をしていますか？
