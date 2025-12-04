@@ -243,7 +243,7 @@
         // ★★★ Firebase 設定 ★★★
         // ==========================================
         const firebaseConfig = {
-         apiKey: "AIzaSyCwfM8A0_Kn2JZ6aWLMilRVcCjD0JweUmM",
+  apiKey: "AIzaSyCwfM8A0_Kn2JZ6aWLMilRVcCjD0JweUmM",
   authDomain: "omamori-e5af9.firebaseapp.com",
   projectId: "omamori-e5af9",
   storageBucket: "omamori-e5af9.firebasestorage.app",
@@ -357,10 +357,25 @@
                 currentUser = user;
                 await loadUserData(user.uid);
                 initPresenceListener();
-                loadingOverlay.style.opacity = '0';
+                
+                // データロード完了後の処理
                 setTimeout(() => {
-                    loadingOverlay.style.display = 'none';
-                    startApp();
+                    loadingOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                        
+                        // ★★★ ここで分岐 (APIキーがない場合のみ聞く) ★★★
+                        if (currentWish && !geminiApiKey) {
+                            // 願い事あり & キーなし -> 見守りを使うか聞く
+                            mimamoriConfirmModal.classList.add('active');
+                        } else if (currentWish && geminiApiKey) {
+                            // キーあり -> アプリ開始（ボタンだけ出しておく）
+                            startMimamoriBtn.style.display = 'block';
+                            startApp();
+                        } else {
+                            // 願い事なし -> wishModalが自動で開くので何もしない
+                        }
+                    }, 500);
                 }, 500);
             }
         });
@@ -659,7 +674,6 @@
                 
                 if (data.error) {
                     console.error("API Error:", data.error);
-                    // 2.0が使えない場合のフォールバックなどを検討しても良いが、一旦ログ出力のみ
                     return;
                 }
 
@@ -826,8 +840,14 @@
                 wishModal.classList.remove('active');
                 saveUserData();
                 
-                // ★ 願い事入力後 -> 見守り確認モーダルへ
-                mimamoriConfirmModal.classList.add('active');
+                // ★ 願い事入力後 -> もしキーがなければ見守り確認モーダルへ
+                if (!geminiApiKey) {
+                    mimamoriConfirmModal.classList.add('active');
+                } else {
+                    // キーがあれば即座にアプリ開始（見守りボタンは表示）
+                    startMimamoriBtn.style.display = 'block';
+                    startApp();
+                }
             } else {
                 alert('願い事や目標を入力してください。');
             }
